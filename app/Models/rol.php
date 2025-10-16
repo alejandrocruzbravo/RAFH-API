@@ -14,4 +14,8 @@ class rol extends Model
      * @var list<string>
      */
     protected $fillable = ['rol_nombre'];
+
+    public function permisos()  {
+        return $this->belongsToMany(Permiso::class,'permiso_rol');
+    }
 }
