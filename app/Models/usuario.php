@@ -7,7 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // <-- ¡Importante!
 
-class Usuario extends Authenticatable
+class usuario extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
@@ -36,6 +36,10 @@ class Usuario extends Authenticatable
             'email_verified_at' => 'datetime',
             'usuario_pass' => 'hashed',
         ];
+    }
+
+    public function isAdmin(){
+        return $this->usuario_id_rol === 1;
     }
 
     /**
