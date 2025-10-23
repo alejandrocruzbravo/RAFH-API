@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Usuario;
+use App\Models\usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +20,7 @@ class AuthController extends Controller
         ]);
 
         // Intentamos encontrar al usuario por su correo
-        $user = Usuario::where('usuario_correo', $request->usuario_correo)->first();
+        $user = usuario::where('usuario_correo', $request->usuario_correo)->first();
 
         // Verificamos si el usuario existe y la contraseña es correcta
         if (! $user || ! Hash::check($request->usuario_pass, $user->usuario_pass)) {
@@ -51,5 +51,7 @@ class AuthController extends Controller
             'message' => 'Sesión cerrada exitosamente.'
         ]);
     }
+
+
 }
 ?>
