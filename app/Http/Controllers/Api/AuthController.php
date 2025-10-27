@@ -1,9 +1,8 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\usuario;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -11,9 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Maneja la solicitud de inicio de sesión.
-     */
     public function login(Request $request)
     {
         $request->validate([
@@ -21,8 +17,8 @@ class AuthController extends Controller
             'usuario_pass' => 'required',
         ]);
 
-        // Intentamos encontrar al usuario por su correo
-        $user = usuario::where('usuario_correo', $request->usuario_correo)->first();
+        // Busca al usuario por su correo
+        $user = Usuario::where('usuario_correo', $request->usuario_correo)->first();
 
         // Verificamos si el usuario existe y la contraseña es correcta
         if (! $user || ! Hash::check($request->usuario_pass, $user->usuario_pass)) {
@@ -30,9 +26,8 @@ class AuthController extends Controller
                 'usuario_correo' => ['Las credenciales proporcionadas son incorrectas.'],
             ]);
         }
-
-        // Creamos el token para el usuario
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Creamos el token para el usuario con expiración de 1 minuto
+        $token = $user->createToken('auth_token', ['*'], now()->addMinutes(180))->plainTextToken;
 
         return response()->json([
             'message' => '¡Inicio de sesión exitoso!',

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('confirm_id_traspaso')->constrained('traspasos');
             $table->foreignId('confirm_id_usuario_autorizador')->constrained('usuarios');
-            $table->timestamp('confim_fecha');
+            $table->timestamp('confirm_fecha');
             $table->string('confirm_aprobado');
             $table->text('confirm_comentarios')->nullable();
             $table->timestamps();

@@ -13,8 +13,7 @@ return new class extends Migration
     {
         Schema::create('archivos_bien', function (Blueprint $table) {
             $table->id();
-            $table->string('archivo_bien_codigo');
-            $table->foreign('archivo_bien_codigo')->references('bien_codigo')->on('bienes');
+            $table->foreignId('archivo_id_bien')->constrained('bienes');
             $table->string('archivo_tipo');
             $table->string('archivo_nombre');
             $table->string('archivo_url')->unique();
