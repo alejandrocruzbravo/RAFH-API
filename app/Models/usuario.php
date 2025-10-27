@@ -1,29 +1,24 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // <-- ¡Importante!
+use Laravel\Sanctum\HasApiTokens;
 
-class usuario extends Authenticatable
+class Usuario extends Authenticatable
 {
     use HasApiTokens, Notifiable;
-
-    // Especifica el nombre de la tabla si no sigue la convención de Laravel
+    // Especifica el nombre de la tabla
     protected $table = 'usuarios';
-
-    // Especifica la clave primaria si no es 'id'
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'id'; 
 
     protected $fillable = [
         'usuario_nombre',
         'usuario_correo',
-        'usuario_pass', // Laravel buscará este campo para la autenticación
-        'usuario_id_rol',
+        'usuario_pass', 
+        'usuario_id_rol', 
     ];
-
 
     protected $hidden = [
         'usuario_pass',
@@ -39,7 +34,7 @@ class usuario extends Authenticatable
     }
 
     public function isAdmin(){
-        return $this->usuario_id_rol === 1;
+        return $this->usuario_id_rol === 1; // <-- ID del rol Administrador
     }
 
     /**
@@ -50,4 +45,3 @@ class usuario extends Authenticatable
         return $this->usuario_pass;
     }
 }
-?>

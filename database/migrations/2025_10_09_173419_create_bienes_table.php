@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bienes', function (Blueprint $table) {
-            $table->string('bien_codigo')->primary();
+            $table->id();
+            $table->string('bien_codigo')->unique();
             $table->string('bien_nombre');
             $table->string('bien_categoria');
             $table->string('bien_ubicacion_actual');
