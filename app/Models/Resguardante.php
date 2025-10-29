@@ -9,11 +9,6 @@ class Resguardante extends Model
 {
     use HasFactory;
 
-    /**
-     * La tabla asociada con el modelo.
-     *
-     * @var string
-     */
     protected $table = 'resguardantes';
 
     /**
@@ -27,8 +22,33 @@ class Resguardante extends Model
         'res_apellido2',
         'res_puesto',
         'res_correo',
-        'res_departamento',
         'res_telefono',
+        'res_departamento', // <-- CORREGIDO
         'res_id_usuario',
     ];
+
+    /**
+     * Obtiene el departamento al que pertenece el resguardante.
+     */
+    public function departamento()
+    {
+        // Se usa 'res_departamento' como la clave foránea
+        return $this->belongsTo(Departamento::class, 'res_departamento');
+    }
+
+    /**
+     * Obtiene el usuario de sistema asociado a este resguardante.
+     */
+    public function usuario()
+    {
+        return $this->belongsTo(Usuario::class, 'res_id_usuario');
+    }
+
+    /**
+     * Obtiene todos los resguardos (registros de asignación) de este resguardante.
+     */
+    public function resguardos()
+    {
+        return $this->hasMany(Resguardo::class, 'resguardo_id_resguardante');
+    }
 }

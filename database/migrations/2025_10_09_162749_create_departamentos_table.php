@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('dep_nombre');
             $table->string('dep_description')->nullable();
-            $table->foreignId('dep_area_codigo')->constrained('areas');
             $table->string('dep_resposable');
             $table->string('dep_correo_institucional');
+            $table->foreignId('id_area')->nullable()->constrained('areas');
             $table->timestamps();
         });
     }

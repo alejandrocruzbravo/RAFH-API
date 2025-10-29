@@ -9,19 +9,31 @@ class Departamento extends Model
 {
     use HasFactory;
 
-    /**
-     * La tabla asociada con el modelo.
-     */
     protected $table = 'departamentos';
 
-    /**
-     * Los atributos que se pueden asignar masivamente.
-     */
     protected $fillable = [
         'dep_nombre',
-        'dep_descripcion',
-        'dep_area_codigo', // La columna con el error de tipeo
+        'dep_description',
         'dep_resposable',
         'dep_correo_institucional',
+        'id_area',
     ];
+
+    /**
+     * Obtiene el área a la que pertenece el departamento.
+     */
+    public function area()
+    {
+        return $this->belongsTo(Area::class, 'id');
+    }
+
+    /**
+     * Obtiene los resguardantes que pertenecen a este departamento.
+     */
+    public function resguardantes()
+    {
+        // --- CORREGIDO ---
+        // Se usa 'res_departamento' como la clave foránea
+        return $this->hasMany(Resguardante::class, 'res_departamento');
+    }
 }
