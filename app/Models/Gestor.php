@@ -23,12 +23,15 @@ class Gestor extends Model
      */
     protected $fillable = [
         'gestor_nombre',
-        'gestor_apellido1',
-        'gestor_apellido2',
-        'gestor_puesto',
+        'gestor_apellidos',
         'gestor_correo',
-        'gestor_departamento',
-        'gestor_telefono',
         'gestor_id_usuario',
     ];
+    /**
+     * Obtiene el usuario de sistema asociado.
+     */
+    public function usuario()
+    {
+        return $this->belongsTo(Usuario::class, 'gestor_id_usuario');
+    }
 }

@@ -30,11 +30,11 @@ return response()->json($areas);
      */
     public function store(Request $request)
     {
-        // Validación de la Regla 2: Responsable debe ser Jefe
-        $jefesDeDepartamentoIds = DB::table('resguardantes')
+        // Validación de la Regla 2: Responsable debe ser Subdirector
+        $subdirectores = DB::table('resguardantes')
             ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
             ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id')
-            ->where('roles.rol_nombre', 'Jefe de Departamento') // Ajusta este nombre de rol
+            ->where('roles.rol_nombre', 'Subdirector') // Ajusta este nombre de rol
             ->pluck('resguardantes.id');
 
         $datosValidados = $request->validate([
@@ -45,7 +45,7 @@ return response()->json($areas);
             'id_resguardante_responsable' => [
                 'nullable',
                 'integer',
-                Rule::in($jefesDeDepartamentoIds) // ¡La regla de negocio clave!
+                Rule::in($subdirectores) // ¡La regla de negocio clave!
             ],
             'id_edificio' => 'nullable|integer|exists:edificios,id',
             //'id_departamento' => 'nullable|integer|exists:departamentos,id',

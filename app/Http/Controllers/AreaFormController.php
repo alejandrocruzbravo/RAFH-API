@@ -17,12 +17,12 @@ class AreaFormController extends Controller
     public function getOptions()
     {
         // 1. Obtener la lista de Jefes (tu regla de negocio)
-        $jefesDeDepartamento = DB::table('resguardantes')
+        $subdirectores = DB::table('resguardantes')
         ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
-        ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id') // <-- Corregido
-        ->where('roles.rol_nombre', 'Jefe de Departamento') 
-        ->pluck('resguardantes.id');
-
+        ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id')
+        ->where('roles.rol_nombre', 'Subdirector') 
+        ->select('resguardantes.id', 'resguardantes.res_nombre') 
+        ->get();
         // 2. Obtener todos los edificios
         $edificios = Edificio::select('id', 'nombre')->get();
 
@@ -31,7 +31,7 @@ class AreaFormController extends Controller
 
         // 4. Devolver todo en una sola respuesta JSON
         return response()->json([
-            'responsables' => $jefesDeDepartamento,
+            'responsables' => $subdirectores,
             'edificios' => $edificios,
             'departamentos' => $departamentos,
         ]);

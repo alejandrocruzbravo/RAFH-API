@@ -13,7 +13,6 @@ class Departamento extends Model
 
     protected $fillable = [
         'dep_nombre',
-        'dep_description',
         'dep_resposable',
         'dep_correo_institucional',
         'id_area',

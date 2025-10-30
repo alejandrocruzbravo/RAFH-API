@@ -20,12 +20,12 @@ class DatabaseSeeder extends Seeder
 
             AreaSeeder::class, // (Depende de ResguardanteSeeder y EdificioSeeder)
             DepartamentoSeeder::class, // (Depende de AreaSeeder)
-            DepartamentoSeeder::class,
 
             BienSeeder::class,
             TraspasoSeeder::class,
             MovimientoBienSeeder::class,
             MantenimientoSeeder::class,
+            DemoUserSeeder::class,
         ]);
     }
 }

@@ -27,7 +27,6 @@ class DepartamentoController extends Controller
     {
         $validatedData = $request->validate([
             'dep_nombre' => 'required|string|max:255',
-            'dep_description' => 'nullable|string',
             'dep_resposable' => 'nullable|string|max:255',
             'dep_correo_institucional' => 'nullable|email|max:255',
             'id_area' => 'required|exists:areas,id',
@@ -56,7 +55,6 @@ class DepartamentoController extends Controller
     {
         $validatedData = $request->validate([
             'dep_nombre' => 'required|string|max:255',
-            'dep_description' => 'nullable|string',
             'dep_resposable' => 'nullable|string|max:255',
             'dep_correo_institucional' => 'nullable|email|max:255',
             'id_area' => 'required|exists:areas,id',

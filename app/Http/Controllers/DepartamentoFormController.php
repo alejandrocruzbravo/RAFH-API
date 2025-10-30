@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Area; // Importamos el modelo Area
+use App\Models\Resguardante;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
 
 class DepartamentoFormController extends Controller
 {
@@ -19,13 +22,21 @@ class DepartamentoFormController extends Controller
                      ->orderBy('area_nombre')
                      ->get();
 
+        $jefesDeDepartamento = DB::table('resguardantes')
+                     ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
+                     ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id') // <-- Corregido
+                     ->where('roles.rol_nombre', 'Jefe de Departamento') 
+                     ->select('resguardantes.id', 'resguardantes.res_nombre') 
+                     ->get();
+
         // 2. (En el futuro) Podrías agregar más datos aquí:
         // $edificios = Edificio::select('id', 'nombre')->get();
         
         // 3. Devolvemos un objeto JSON con todas las listas
         return response()->json([
             'areas' => $areas,
-            // 'edificios' => $edificios, 
+            'responsables' => $jefesDeDepartamento,
+
         ]);
     }
 }

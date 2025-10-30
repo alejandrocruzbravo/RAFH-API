@@ -20,7 +20,9 @@ use App\Http\Controllers\AreaFormController;
 use App\Http\Controllers\DepartamentoFormController;
 use App\Http\Controllers\EdificioController;
 use App\Http\Controllers\OficinaFormController;
+use App\Http\Controllers\GestorController;
 
+use App\Http\Controllers\RolFormController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,12 +47,14 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::apiResource('departamentos', DepartamentoController::class);
         Route::apiResource('edificios', EdificioController::class);
         Route::apiResource('oficinas', OficinaController::class);
+        Route::apiResource('gestores', GestorController::class);
         
 
         Route::get('/dashboard', [DashboardController::class, 'index']);            //Vista general
         Route::get('/area-form-options', [AreaFormController::class, 'getOptions']); //Formulario de registro de áreas
         Route::get('formularios/departamentos', DepartamentoFormController::class)->name('formularios.departamentos');
         Route::get('formularios/oficinas', OficinaFormController::class)->name('formularios.oficinas');
+        Route::get('formularios/roles', RolFormController::class)->name('formularios.roles');
         
     });
     
