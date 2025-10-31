@@ -23,7 +23,7 @@ use App\Http\Controllers\OficinaFormController;
 use App\Http\Controllers\GestorController;
 
 use App\Http\Controllers\RolFormController;
-
+use App\Http\Controllers\ResguardanteFormController;
 /*
 |--------------------------------------------------------------------------
 | Rutas de API
@@ -55,7 +55,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('formularios/departamentos', DepartamentoFormController::class)->name('formularios.departamentos');
         Route::get('formularios/oficinas', OficinaFormController::class)->name('formularios.oficinas');
         Route::get('formularios/roles', RolFormController::class)->name('formularios.roles');
-        
+        Route::get('formularios/resguardantes', ResguardanteFormController::class)->name('formularios.resguardantes');
     });
     
 });
