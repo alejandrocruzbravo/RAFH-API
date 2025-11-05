@@ -29,8 +29,12 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::post('/register',[RegisterController::class,'register']);    //Registro de gestor con usuario administrador
         
 
-        Route::apiResource('bienes', BienController::class);
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        
+        /**
+         * Ruta de recursos
+        */
+        Route::apiResource('bienes', BienController::class);
     });
     
 });

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\cucopClave;
+use Carbon\Carbon;
 
 class Bien extends Model
 {
@@ -27,4 +29,16 @@ class Bien extends Model
         'bien_valor_monetario',
         'bien_id_dep',
     ];
-}
+
+    static public function generarCodigo($serie,array $fitros) {
+        $cucop=null;
+        foreach($fitros as $campo=> $valor){
+            $cucop = cucopClave::where($campo,$valor)->first();
+        };
+        $string = 'I'.$cucop->cucop.'-'.Carbon::now()->format('y').'-23-'.$serie;
+        return $string;
+    }
+
+
+
+}         
