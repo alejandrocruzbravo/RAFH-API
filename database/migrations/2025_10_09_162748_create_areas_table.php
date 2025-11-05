@@ -15,16 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('area_codigo')->unique();
             $table->string('area_nombre');
-            
-            // Relación con Edificios (Esta SÍ se queda)
+
+            // Relación con Edificios (como la tenías)
             $table->foreignId('id_edificio')
                   ->nullable()
-                  ->constrained('edificios');
-            
-            // --- CADENA ROTA ---
-            // Creamos la columna, pero sin la llave foránea por ahora
+                  ->constrained('edificios')
+                  ->onDelete('set null'); // Opcional: si se borra el edificio, se pone null
+
             $table->unsignedBigInteger('id_resguardante_responsable')->nullable();
-            
             $table->timestamps();
         });
     }

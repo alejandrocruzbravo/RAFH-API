@@ -59,4 +59,5 @@ class Resguardante extends Model
     {
         return $this->belongsTo(Oficina::class, 'id_oficina');
     }
+    
 }
