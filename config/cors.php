@@ -37,7 +37,7 @@ return [
     */
 
     'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:5173'), // <-- ¡EDITA ESTA LÍNEA!
+        env('FRONTEND_URL', 'http://localhost:5174'), 
     ],
 
     /*

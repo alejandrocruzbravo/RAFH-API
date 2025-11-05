@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('movimiento_id_dep')->constrained('departamentos');
             $table->timestamp('movimiento_fecha');
             $table->string('movimiento_tipo');
+            $table->integer('movimiento_cantidad')->default(1);
             $table->foreignId('movimiento_id_usuario_origen')->constrained('usuarios');
             $table->foreignId('movimiento_id_usuario_destino')->constrained('usuarios');
             $table->foreignId('movimiento_id_usuario_autorizado')->constrained('usuarios');

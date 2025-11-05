@@ -23,7 +23,18 @@ class Area extends Model
      */
     protected $fillable = [
         'area_nombre',
-        'area_responsable',
-        'area_edificio',
+        'area_codigo',
+        'id_resguardante_responsable',
+        'id_edificio',                 
     ];
+    public function departamentos()
+    {
+        return $this->hasMany(Departamento::class, 'id_area');
+    }
+    public function edificio() {
+        return $this->belongsTo(Edificio::class, 'id_edificio');
+    }
+    public function responsable() {
+        return $this->belongsTo(Resguardante::class, 'id_resguardante_responsable', 'id');
+    }
 }

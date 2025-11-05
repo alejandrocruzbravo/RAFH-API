@@ -26,9 +26,15 @@ class DashboardController extends Controller
         $statResguardantes = Resguardante::count();
 
         // --- Widget "Último bien registrado" ---
-        $ultimoBien = Bien::latest()->first();
-        $ultimoBienFiltrado = $ultimoBien ? [
-            'nombre' => $ultimoBien->bien_nombre
+        $ultimoRegistro = MovimientoBien::where('movimiento_tipo', 'Registro')
+            ->with('bien:id,bien_nombre') // Carga el nombre del bien asociado
+            ->latest('movimiento_fecha')
+            ->first();
+        
+        // 2. Filtra los datos
+        $ultimoBienRegistradoFiltrado = $ultimoRegistro ? [
+            'nombre' => $ultimoRegistro->bien->bien_nombre ?? 'N/A',
+            'cantidad' => $ultimoRegistro->movimiento_cantidad,
         ] : null;
 
     // --- Widget "Última transferencia" ---
@@ -110,7 +116,7 @@ class DashboardController extends Controller
                 'areas_asociadas' => $statAreas,
                 'resguardantes_registrados' => $statResguardantes,
             ],
-            'ultimo_bien_registrado' => $ultimoBienFiltrado,
+            'ultimo_bien_registrado' => $ultimoBienRegistradoFiltrado,
             'ultima_transferencia' => $ultimaTransferenciaFiltrada,
             'notificaciones' =>  $solicitudesPendientes,
             'ultimos_movimientos' => $ultimosMovimientos,

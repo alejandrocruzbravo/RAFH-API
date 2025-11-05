@@ -16,17 +16,24 @@ class DepartamentoSeeder extends Seeder
             [
                 'dep_nombre' => 'Contabilidad',
                 'dep_description' => 'Departamento de Contabilidad y Finanzas',
-                'dep_area_codigo' => '1', // Columna corregida
                 'dep_resposable' => 'Juan Pérez',
                 'dep_correo_institucional' => 'contabilidad@instituto.com',
+                'id_area' => 1, // Pertenece al Área 'FIN' (ID 1)
             ],
             [
                 'dep_nombre' => 'Soporte Técnico',
                 'dep_description' => 'Departamento de Soporte de TI',
-                'dep_area_codigo' => '2', // Columna corregida
                 'dep_resposable' => 'Ana López',
                 'dep_correo_institucional' => 'soporte@instituto.com',
+                'id_area' => 2, // Pertenece al Área 'TEC' (ID 2)
             ],
+            [
+                'dep_nombre' => 'Servicios Escolares',
+                'dep_description' => 'Departamento de gestión escolar y estudiantil',
+                'dep_resposable' => 'María García',
+                'dep_correo_institucional' => 'escolares@instituto.com',
+                'id_area' => 1, // Pertenece al Área 'FIN' (ID 1)
+            ]
         ]);
     }
 }
