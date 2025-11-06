@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('departamentos', function (Blueprint $table) {
             $table->id();
             $table->string('dep_nombre');
+            $table->string('dep_codigo')->unique();
             $table->string('dep_resposable')->nullable(); 
             $table->string('dep_correo_institucional')->nullable();
             $table->unsignedBigInteger('id_area')->nullable();

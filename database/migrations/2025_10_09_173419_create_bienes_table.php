@@ -24,7 +24,6 @@ return new class extends Migration
             $table->string('bien_marca');
             $table->timestamp('bien_fecha_adquision');
             $table->unsignedInteger('bien_valor_monetario');
-            $table->foreignId('bien_id_dep')->constrained('departamentos');
             $table->timestamps();
         });
     }
