@@ -42,6 +42,13 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::post('/logout', [AuthController::class, 'logout']);          // Cierre de sesión
         Route::post('/register',[RegisterController::class,'register']);    //Registro de gestor con usuario administrador
         
+
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        
+        /**
+         * Ruta de recursos
+        */
+        Route::apiResource('bienes', BienController::class);
         Route::apiResource('areas', AreaController::class);
         Route::apiResource('bienes', BienController::class);
         Route::apiResource('resguardantes', ResguardanteController::class);

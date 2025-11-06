@@ -11,12 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('edificios', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
-            $table->string('edif_codigo');
-            $table->timestamps();
-        });
+            $sql = file_get_contents(database_path('seeders/data/obtener_claves_camba.sql'));
+            DB::unprepared($sql);
     }
 
     /**
@@ -24,6 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('edificios');
+        DB::unprepared("DROP FUNCTION IF EXISTS obtener_camba_con_cucop(TEXT)");
     }
 };
