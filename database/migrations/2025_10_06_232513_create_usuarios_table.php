@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('usuario_nombre')->unique();
             $table->string('usuario_correo')->unique();
-            $table->string('usuario_pass')->unique();
+            $table->string('usuario_pass');
             $table->foreignId('usuario_id_rol')->constrained('roles');
             $table->timestamps();
         });

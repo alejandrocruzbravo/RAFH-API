@@ -9,7 +9,6 @@ use App\Models\Gestor;
 use App\Models\Resguardante;
 use App\Models\Traspaso;
 use App\Models\MovimientoBien;
-use App\Models\Mantenimiento;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -53,22 +52,28 @@ class DashboardController extends Controller
     ] : null;
 
         // --- Widget "Notificaciones (Solicitudes de transferencia)" ---
-        $solicitudesPendientes = Traspaso::where('traspaso_estado', 'Pendiente')
-        ->with([
-            'bien:id,bien_nombre',
-            'usuarioOrigen:id,usuario_nombre',
-            'usuarioDestino:id,usuario_nombre'
-        ])
-        ->orderBy('traspaso_fecha_solicitud', 'asc')
-        ->get()
-        ->map(function ($traspaso) {
-            return [
-                'id_traspaso' => $traspaso->id, // El ID para los botones
-                'bien_nombre' => $traspaso->bien->bien_nombre ?? 'N/A',
-                'emisor' => $traspaso->usuarioOrigen->usuario_nombre ?? 'N/A',
-                'receptor' => $traspaso->usuarioDestino->usuario_nombre ?? 'N/A',
+        $ultimaSolicitud = Traspaso::where('traspaso_estado', 'Pendiente')
+            ->with([
+                'bien:id,bien_nombre',
+                'usuarioOrigen:id,usuario_nombre',
+                'usuarioDestino:id,usuario_nombre'
+            ])
+            // 'latest()' es un atajo para orderBy('...', 'desc')
+            ->latest('traspaso_fecha_solicitud') 
+            ->first(); // 'first()' obtiene solo un registro (o null)
+
+        // 2. Preparamos el array para el widget
+        $solicitudWidget = null;
+        if ($ultimaSolicitud) {
+            // Como ya no es una colección, no usamos .map()
+            // Simplemente construimos el array directamente.
+            $solicitudWidget = [
+                'id_traspaso' => $ultimaSolicitud->id,
+                'bien_nombre' => $ultimaSolicitud->bien->bien_nombre ?? 'N/A',
+                'emisor' => $ultimaSolicitud->usuarioOrigen->usuario_nombre ?? 'N/A',
+                'receptor' => $ultimaSolicitud->usuarioDestino->usuario_nombre ?? 'N/A',
             ];
-        });
+        }
 
         $ultimosMovimientos = MovimientoBien::with([
             // Selecciona 'id' (la PK de bienes) y 'bien_nombre'
@@ -94,19 +99,6 @@ class DashboardController extends Controller
             ];
         });
 
-        // --- Widget "Próximo mantenimiento" ---
-        $proxMant = Mantenimiento::where('mantenimiento_estado', 'Programado')
-            ->where('fecha_programada', '>=', now())
-            ->orderBy('fecha_programada', 'asc')
-            ->with('bien:id,bien_nombre') // Selecciona PK y nombre
-            ->first();
-
-        // Filtramos y formateamos la fecha
-        $proximoMantenimientoFiltrado = $proxMant ? [
-            // Formatea la fecha como 12/07/25
-            'fecha_programada' => $proxMant->fecha_programada->format('d/m/y'), 
-            'para_bien_nombre' => $proxMant->bien->bien_nombre ?? 'N/A',
-        ] : null;
 
         // 2. Devuelve todo en una sola respuesta JSON
         return response()->json([
@@ -118,9 +110,8 @@ class DashboardController extends Controller
             ],
             'ultimo_bien_registrado' => $ultimoBienRegistradoFiltrado,
             'ultima_transferencia' => $ultimaTransferenciaFiltrada,
-            'notificaciones' =>  $solicitudesPendientes,
+            'notificaciones' => $ultimaSolicitud ,
             'ultimos_movimientos' => $ultimosMovimientos,
-            'proximo_mantenimiento' => $proximoMantenimientoFiltrado,
         ]);
     }
 }

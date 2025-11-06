@@ -18,7 +18,7 @@ class AreaController extends Controller
         $areas = Area::with([
             'departamentos:id,dep_nombre',
             'edificio:id,nombre',
-            'responsable:id,res_nombre,res_apellido1' // Asumiendo que esta relación existe
+            'responsable:id,res_nombre,res_apellidos' // Asumiendo que esta relación existe
          ])
          ->get();
 
@@ -64,7 +64,7 @@ return response()->json($areas);
         $area = Area::findOrFail($id);
         $area->load('departamentos:id,dep_nombre', 
                     'edificio:id,nombre', 
-                    'responsable:id,res_nombre,res_apellido1');
+                    'responsable:id,res_nombre,res_apellidos');
 
         return response()->json($area);
     }
@@ -72,32 +72,28 @@ return response()->json($areas);
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Area $area)
     {
-        $area = Area::findOrFail($id); // Busca el área primero
-        // 1. Buscamos la lista de Jefes
-        $jefesDeDepartamentoIds = DB::table('resguardantes')
+        $subdirectoresIds = DB::table('resguardantes')
             ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
             ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id')
-            ->where('roles.rol_nombre', 'Jefe de Departamento')
+            ->where('roles.rol_nombre', 'Subdirector')
             ->pluck('resguardantes.id');
 
-        // 2. Validación (¡La regla 'unique' es diferente!)
+        // 2. Validación
         $datosValidados = $request->validate([
             'area_nombre' => 'required|string|max:255',
             
-            // Le decimos a Laravel que ignore el ID del área actual
-            // al comprobar si el 'area_codigo' es único.
             'area_codigo' => [
                 'required',
                 'string',
-                Rule::unique('areas')->ignore($area->id) 
+                Rule::unique('areas')->ignore($area->id) // Ignora el ID actual
             ],
             
             'id_resguardante_responsable' => [
                 'nullable',
                 'integer',
-                Rule::in($jefesDeDepartamentoIds)
+                Rule::in($subdirectoresIds) // Valida que el ID esté en la lista
             ],
             'id_edificio' => 'nullable|integer|exists:edificios,id',
         ]);

@@ -14,10 +14,9 @@ return new class extends Migration
         Schema::create('departamentos', function (Blueprint $table) {
             $table->id();
             $table->string('dep_nombre');
-            $table->string('dep_description')->nullable();
-            $table->string('dep_resposable');
-            $table->string('dep_correo_institucional');
-            $table->foreignId('id_area')->nullable()->constrained('areas');
+            $table->string('dep_resposable')->nullable(); 
+            $table->string('dep_correo_institucional')->nullable();
+            $table->unsignedBigInteger('id_area')->nullable();
             $table->timestamps();
         });
     }

@@ -34,7 +34,7 @@ class Usuario extends Authenticatable
     }
 
     public function isAdmin(){
-        return $this->usuario_id_rol === 1; // <-- ID del rol Administrador
+        return $this->usuario_id_rol === 1;
     }
 
     /**
@@ -43,5 +43,23 @@ class Usuario extends Authenticatable
     public function getAuthPassword()
     {
         return $this->usuario_pass;
+    }
+    public function rol()
+    {
+        // Basado en tu diagrama, la llave foránea es 'usuario_id_rol'
+        return $this->belongsTo(Rol::class, 'usuario_id_rol');
+    }
+    // En app/Models/Usuario.php
+
+    public function resguardante()
+    {
+        // Asumiendo que esta es la FK en la tabla resguardantes
+        return $this->hasOne(Resguardante::class, 'res_id_usuario');
+    }
+
+    public function gestor()
+    {
+        // Asumiendo que esta es la FK en la tabla gestores
+        return $this->hasOne(Gestor::class, 'gestor_id_usuario');
     }
 }

@@ -24,6 +24,7 @@ use App\Http\Controllers\GestorController;
 
 use App\Http\Controllers\RolFormController;
 use App\Http\Controllers\ResguardanteFormController;
+use App\Http\Controllers\TraspasoController;
 /*
 |--------------------------------------------------------------------------
 | Rutas de API
@@ -55,8 +56,8 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::apiResource('edificios', EdificioController::class);
         Route::apiResource('oficinas', OficinaController::class);
         Route::apiResource('gestores', GestorController::class);
+        Route::apiResource('traspasos', TraspasoController::class);
         
-
         Route::get('/dashboard', [DashboardController::class, 'index']);            //Vista general
         Route::get('/area-form-options', [AreaFormController::class, 'getOptions']); //Formulario de registro de áreas
         Route::get('formularios/departamentos', DepartamentoFormController::class)->name('formularios.departamentos');
