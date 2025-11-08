@@ -22,7 +22,7 @@ class AreaController extends Controller
          ])
          ->get();
 
-return response()->json($areas);
+        return response()->json($areas);
     }
 
     /**

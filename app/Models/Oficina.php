@@ -18,7 +18,9 @@ class Oficina extends Model
      * Los atributos que se pueden asignar masivamente.
      */
     protected $fillable = [
+        'id_departamento',
         'id_edificio',
+        'ofi_codigo',
         'nombre',
         'referencia',
     ];
@@ -29,5 +31,9 @@ class Oficina extends Model
     public function edificio()
     {
         return $this->belongsTo(Edificio::class, 'id_edificio');
+    }
+    public function departamento()
+    {
+        return $this->belongsTo(Departamento::class, 'id_departamento');
     }
 }

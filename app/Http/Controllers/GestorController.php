@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Gestor;
 use App\Models\Usuario;
-use Illuminate\Support\Facades\DB;     // <-- AÑADE ESTA
-use Illuminate\Support\Facades\Hash;  // <-- AÑADE ESTA
+use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -26,32 +26,31 @@ class GestorController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validar TODOS los datos (del Gestor y del Usuario)
+        // 1. Validar los datos (¡ELIMINAMOS 'usuario_id_rol' de aquí!)
         $validatedData = $request->validate([
-            // Datos del Gestor
             'gestor_nombre' => 'required|string|max:255',
             'gestor_apellidos' => 'required|string|max:255',
             
-            // Datos del Usuario (nuevos)
             // El correo debe ser único en AMBAS tablas
             'gestor_correo' => 'required|email|max:255|unique:gestores,gestor_correo|unique:usuarios,usuario_correo',
-            'usuario_pass' => 'required|string|min:8', // Considera añadir 'confirmed' si envías 'usuario_pass_confirmation'
-            'usuario_id_rol' => 'required|integer|exists:roles,id',
+            'usuario_pass' => 'required|string|min:8',
         ]);
 
-        $gestor = null; // Inicializamos la variable
+        $gestor = null; 
 
         try {
-            // 2. Iniciar la transacción
             DB::beginTransaction();
 
             // 3. Crear el Usuario primero
             $usuario = Usuario::create([
-                // Asumimos que el nombre de usuario es el nombre del gestor
                 'usuario_nombre' => $validatedData['gestor_nombre'] . ' ' . $validatedData['gestor_apellidos'],
                 'usuario_correo' => $validatedData['gestor_correo'],
-                'usuario_pass' => Hash::make($validatedData['usuario_pass']), // ¡Hashear la contraseña!
-                'usuario_id_rol' => $validatedData['usuario_id_rol'],
+                'usuario_pass' => Hash::make($validatedData['usuario_pass']), 
+                
+                // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+                // Asignamos el Rol ID 2 (Gestor) automáticamente.
+                // Ignoramos cualquier 'usuario_id_rol' que el frontend intente enviar.
+                'usuario_id_rol' => 2, 
             ]);
 
             // 4. Crear el Gestor, vinculando el ID del nuevo usuario
@@ -59,19 +58,15 @@ class GestorController extends Controller
                 'gestor_nombre' => $validatedData['gestor_nombre'],
                 'gestor_apellidos' => $validatedData['gestor_apellidos'],
                 'gestor_correo' => $validatedData['gestor_correo'],
-                'gestor_id_usuario' => $usuario->id, // <-- ¡AQUÍ ESTÁ LA VINCULACIÓN!
+                'gestor_id_usuario' => $usuario->id, // <-- ¡LA VINCULACIÓN!
             ]);
 
-            // 5. Si todo salió bien, confirmar los cambios
             DB::commit();
 
         } catch (Throwable $e) {
-            // 6. Si algo falla (ej. error de BD), deshacer todo
             DB::rollBack();
-            
-            // Devolver un error 500
             return response()->json([
-                'error' => 'Error al crear el gestor y el usuario. La operación fue revertida.',
+                'error' => 'Error al crear el gestor y el usuario.',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -92,41 +87,28 @@ class GestorController extends Controller
      */
 /**
      * Actualiza un gestor y su usuario correspondiente.
-     * (¡CORREGIDO con Transacción para 2 tablas!)
      */
     public function update(Request $request, Gestor $gestore)
     {
-        // 1. Validar los datos de entrada
+        // 1. Validar los datos (¡ELIMINAMOS 'usuario_id_rol' de aquí!)
         $validatedData = $request->validate([
-            // --- Datos del Gestor ---
             'gestor_nombre' => 'required|string|max:255',
             'gestor_apellidos' => 'required|string|max:255',
+            'usuario_pass' => 'nullable|string|min:8', // Opcional: permitir cambiar contraseña
             
-            // --- Datos de Usuario (Opcionales en el update) ---
-            'usuario_pass' => 'nullable|string|min:8', // La contraseña es opcional
-            'usuario_id_rol' => 'nullable|integer|exists:roles,id', // El rol es opcional
-
-            // --- Campos Únicos (Reglas complejas) ---
             'gestor_correo' => [
-                'required',
-                'email',
-                'max:255',
-                // Debe ser único en 'gestores', ignorando el ID del gestor actual
+                'required', 'email', 'max:255',
                 Rule::unique('gestores', 'gestor_correo')->ignore($gestore->id),
-                // Debe ser único en 'usuarios', ignorando el ID del usuario vinculado
                 Rule::unique('usuarios', 'usuario_correo')->ignore($gestore->gestor_id_usuario, 'id')
             ],
             
-            // Esta regla es de tu código anterior, la mantenemos
             'gestor_id_usuario' => 'nullable|integer|exists:usuarios,id|unique:gestores,gestor_id_usuario,' . $gestore->id,
         ]);
 
         try {
-            // 2. Iniciar la transacción
             DB::beginTransaction();
 
             // 3. Actualizar el Gestor
-            // Filtramos solo los campos que pertenecen al modelo Gestor
             $gestorData = $request->only(['gestor_nombre', 'gestor_apellidos', 'gestor_correo']);
             $gestore->update($gestorData);
 
@@ -134,42 +116,39 @@ class GestorController extends Controller
             $usuario = Usuario::find($gestore->gestor_id_usuario);
             
             if ($usuario) {
-                // Prepara los datos a actualizar del usuario
                 $usuarioData = [
                     'usuario_nombre' => $validatedData['gestor_nombre'] . ' ' . $validatedData['gestor_apellidos'],
                     'usuario_correo' => $validatedData['gestor_correo'],
                 ];
-
                 
-                // Solo actualiza el rol SI SE ENVIÓ uno nuevo
-                if ($request->filled('usuario_id_rol')) {
-                    $usuarioData['usuario_id_rol'] = $validatedData['usuario_id_rol'];
+                if ($request->filled('usuario_pass')) {
+                    $usuarioData['usuario_pass'] = Hash::make($validatedData['usuario_pass']);
                 }
+                
+                // ¡IMPORTANTE! Ya no actualizamos el 'usuario_id_rol'.
+                // Un gestor siempre es un gestor (Rol ID 2).
 
                 $usuario->update($usuarioData);
             }
 
-            // 5. Si todo salió bien, confirmar los cambios
             DB::commit();
 
         } catch (Throwable $e) {
-            // 6. Si algo falla, deshacer todo
             DB::rollBack();
-            
             return response()->json([
-                'error' => 'Error al actualizar el gestor y el usuario. La operación fue revertida.',
+                'error' => 'Error al actualizar el gestor y el usuario.',
                 'message' => $e->getMessage()
             ], 500);
         }
 
-        // 7. Devolver el gestor actualizado (cargando la relación 'usuario')
         return response()->json($gestore->load('usuario'), 200);
+
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Gestor $gestore) // Usando la variable corregida
+    public function destroy(Gestor $gestore)
     {
         try {
             // Inicia una transacción

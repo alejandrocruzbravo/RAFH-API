@@ -19,9 +19,8 @@ return new class extends Migration
             $table->string('bien_descripcion');
             $table->string('bien_estado');
             $table->string('bien_marca');
-            $table->string('bien_serie');
             $table->string('bien_modelo');
-            $table->string('bien_marca');
+            $table->string('bien_serie');
             $table->timestamp('bien_fecha_adquision');
             $table->unsignedInteger('bien_valor_monetario');
             $table->timestamps();
