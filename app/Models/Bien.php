@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\cucopClave;
+use App\Models\ArchivoBien;
 use Carbon\Carbon;
 
 class Bien extends Model
@@ -30,13 +31,14 @@ class Bien extends Model
         'bien_id_dep',
     ];
 
-    static public function generarCodigo($serie,array $fitros) {
-        $cucop=null;
-        foreach($fitros as $campo=> $valor){
-            $cucop = cucopClave::where($campo,$valor)->first();
-        };
-        $string = 'I'.$cucop->cucop.'-'.Carbon::now()->format('y').'-23-'.$serie;
-        return $string;
+    static public function generarCodigo($serie,$clave = 0,$y=null) {
+        $string = ($y !== null) ? 'I'.$clave.'-'.$y->format('y').'-23-'.$serie : 'I'.$clave.'-23-'.$serie;
+        return strtoupper($string);
+    }
+
+
+    public function archivos(){
+        return $this->hasMany(ArchivoBien::class);
     }
 
 
