@@ -106,7 +106,12 @@ class CatalogoSYSINVseeder extends Seeder
         fclose($handle);
         // $text = implode("\n",$duplicateRecords);
         echo count($duplicateRecords);
-        File::put(storage_path('app/duplicados/duplicateRecords.json'),json_encode($duplicateRecords));
+        
+File::put(
+    storage_path('app/private/duplicateRecords.json'),
+    json_encode($duplicateRecords, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+);
+
 
     }
 }
