@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('edificios', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->string('edif_codigo');
             $table->timestamps();
         });
     }

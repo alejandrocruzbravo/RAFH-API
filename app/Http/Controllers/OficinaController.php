@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Oficina;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
+use Illuminate\Validation\Rule;
 
 class OficinaController extends Controller
 {
@@ -37,7 +38,9 @@ class OficinaController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
+            'id_departamento' => 'required|integer|exists:departamentos,id',
             'id_edificio' => 'required|exists:edificios,id',
+            'ofi_codigo' => 'required|string|max:255|unique:oficinas,ofi_codigo',
             'nombre' => 'required|string|max:255',
             'referencia' => 'nullable|string|max:255',
         ]);
@@ -45,7 +48,7 @@ class OficinaController extends Controller
         $oficina = Oficina::create($validatedData);
 
         // Devolvemos la oficina creada, cargando la relación 'edificio'
-        return response()->json($oficina->load('edificio'), 201);
+        return response()->json($oficina->load('departamento','edificio'), 201);
     }
 
     /**
@@ -65,14 +68,21 @@ class OficinaController extends Controller
     public function update(Request $request, Oficina $oficina)
     {
         $validatedData = $request->validate([
+            'id_departamento' => 'required|integer|exists:departamentos,id',
             'id_edificio' => 'required|exists:edificios,id',
+            'ofi_codigo' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('oficinas')->ignore($oficina->id),
+            ],
             'nombre' => 'required|string|max:255',
             'referencia' => 'nullable|string|max:255',
         ]);
 
         $oficina->update($validatedData);
 
-        return response()->json($oficina->load('edificio'), 200);
+        return response()->json($oficina->load('departamento','edificio'), 200);
     }
 
     /**

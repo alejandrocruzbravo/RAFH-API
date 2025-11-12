@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash; 
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
+use App\Models\Rol;
 use Throwable;
 class ResguardanteController extends Controller
 {
@@ -19,121 +20,59 @@ class ResguardanteController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Resguardante::with('departamento.area')
-        ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
-        ->select('resguardantes.*', 'usuarios.usuario_id_rol');
+        // Inicia la consulta
+        $query = Resguardante::with('departamento.area', 'oficina.edificio')
+            
+            // --- ¡CORRECCIÓN! ---
+            // Usa LEFT JOIN para incluir resguardantes sin usuario
+            ->leftJoin('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
+            
+            // Selecciona todas las columnas de 'resguardantes' y el 'rol' del usuario (si existe)
+            ->select('resguardantes.*', 'usuarios.usuario_id_rol');
 
+        // Lógica de búsqueda
         if ($request->filled('search')) {
             $searchTerm = $request->input('search');
             $query->where(function($q) use ($searchTerm) {
-                $q->where('res_nombre', 'like', "%{$searchTerm}%")
-                  ->orWhere('res_apellidos', 'like', "%{$searchTerm}%") // <-- CORREGIDO
-                  ->orWhere('res_correo', 'like', "%{$searchTerm}%")
-                  ->orWhere('res_rfc', 'like', "%{$searchTerm}%");      // <-- AÑADIDO
+                $q->where('resguardantes.res_nombre', 'like', "%{$searchTerm}%")
+                  ->orWhere('resguardantes.res_apellidos', 'like', "%{$searchTerm}%")
+                  ->orWhere('resguardantes.res_correo', 'like', "%{$searchTerm}%")
+                  ->orWhere('resguardantes.res_rfc', 'like', "%{$searchTerm}%");
             });
         }
 
-        $resguardantes = $query->latest()->paginate(10);
+        // Ordena por el ID del resguardante (usando 'latest' en la tabla principal)
+        $resguardantes = $query->latest('resguardantes.created_at')->paginate(10);
 
         return $resguardantes;
     }
-
     /**
      * Almacena un nuevo resguardante.
      * (Corregido para 'res_apellidos' y 'res_rfc')
      */
 
-        public function store(Request $request)
-    {
-        // 1. Validar TODOS los datos (del Resguardante y del Usuario)
-        // Usamos las columnas corregidas 'res_apellidos' y 'res_rfc'
-        $validatedData = $request->validate([
-            // Datos del Resguardante
-            'res_nombre' => 'required|string|max:255',
-            'res_apellidos' => 'required|string|max:255',
-            'res_puesto' => 'required|string|max:255',
-            'res_rfc' => 'nullable|string|size:13|unique:resguardantes,res_rfc',
-            'id_oficina' => 'nullable|integer|exists:oficinas,id',
-            'res_telefono' => 'nullable|string|max:20',
-            'res_departamento' => 'required|integer|exists:departamentos,id',
-            
-            // Datos del Usuario
-            // El correo debe ser único en AMBAS tablas
-            'res_correo' => 'required|email|max:255|unique:resguardantes,res_correo|unique:usuarios,usuario_correo',
-            'usuario_pass' => 'required|string|min:8', // Asume que el front envía 'password'
-            'usuario_id_rol' => 'required|integer|exists:roles,id|gte:3', // Valida que el rol sea > 3
-        ]);
+     public function store(Request $request)
+     {
+         // 1. Validación (ahora incluye res_curp)
+         $validatedData = $request->validate([
+             'res_nombre' => 'required|string|max:255',
+             'res_apellidos' => 'required|string|max:255',
+             'res_puesto' => 'required|string|max:255',
+             'res_departamento' => 'required|integer|exists:departamentos,id',
+             'res_rfc' => 'nullable|string|size:13|unique:resguardantes,res_rfc',
+             'res_curp' => 'nullable|string|size:18|unique:resguardantes,res_curp', 
+             'res_telefono' => 'nullable|string|max:20',
+             'id_oficina' => 'nullable|integer|exists:oficinas,id',
+             'res_correo' => 'nullable|email|max:255|unique:resguardantes,res_correo',
+         ]);
+ 
+         // 2. Crear el Resguardante
+         $resguardante = Resguardante::create($validatedData);
+ 
+         // 3. Devolver el resguardante creado
+         return response()->json($resguardante->load('departamento.area', 'oficina.edificio'), 201);
+     }
 
-        $resguardante = null;
-
-        try {
-            // 2. Iniciar la transacción
-            DB::beginTransaction();
-
-            // 3. Crear el Usuario primero
-            $usuario = Usuario::create([
-                'usuario_nombre' => $validatedData['res_nombre'] . ' ' . $validatedData['res_apellidos'],
-                'usuario_correo' => $validatedData['res_correo'],
-                'usuario_pass' => Hash::make($validatedData['usuario_pass']), // ¡Hashear la contraseña!
-                'usuario_id_rol' => $validatedData['usuario_id_rol'],
-            ]);
-
-            // 4. Crear el Resguardante, vinculando el ID del nuevo usuario
-            $resguardante = Resguardante::create([
-                'res_nombre' => $validatedData['res_nombre'],
-                'res_apellidos' => $validatedData['res_apellidos'],
-                'res_puesto' => $validatedData['res_puesto'],
-                'res_rfc' => $validatedData['res_rfc'] ?? null,
-                'res_correo' => $validatedData['res_correo'],
-                'res_telefono' => $validatedData['res_telefono'] ?? null,
-                'res_departamento' => $validatedData['res_departamento'],
-                'id_oficina' => $validatedData['id_oficina'] ?? null,
-                'res_id_usuario' => $usuario->id, // <-- ¡LA VINCULACIÓN!
-            ]);
-
-            // 5. Si todo salió bien, confirmar los cambios
-            DB::commit();
-
-        } catch (Throwable $e) {
-            // 6. Si algo falla (ej. error de BD), deshacer todo
-            DB::rollBack();
-            
-            // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
-            // Ahora capturamos la excepción específica de "Violación Única"
-            if ($e instanceof UniqueConstraintViolationException) {
-                
-                // Revisa si el error es sobre el nombre de usuario
-                if (str_contains($e->getMessage(), 'usuarios_usuario_nombre_unique')) {
-                    return response()->json([
-                        'message' => 'El nombre de usuario ya existe.',
-                        'errors' => [
-                            'res_nombre' => ['Ya existe un usuario con este nombre y apellidos.']
-                        ]
-                    ], 422);
-                }
-                
-                // Revisa si es sobre el correo (aunque la validación de Laravel debería atrapar esto primero)
-                if (str_contains($e->getMessage(), 'usuarios_usuario_correo_unique') || str_contains($e->getMessage(), 'resguardantes_res_correo_unique')) {
-                    return response()->json([
-                        'message' => 'El correo ya existe.',
-                        'errors' => [
-                            'res_correo' => ['Este correo electrónico ya está en uso.']
-                        ]
-                    ], 422);
-                }
-            }
-            
-            // Si es cualquier otro error, devuelve un 500
-            return response()->json([
-                'error' => 'Error al crear el resguardante y el usuario. La operación fue revertida.',
-                'message' => $e->getMessage()
-            ], 500);
-
-        // 7. Devolver el resguardante creado (con su departamento)
-        return response()->json($resguardante->load('departamento.area', 'usuario','oficina.edificio'), 201);
-    }
-}
-    
 
     /**
      * Muestra un resguardante específico.
@@ -150,85 +89,59 @@ class ResguardanteController extends Controller
      */
     public function update(Request $request, Resguardante $resguardante)
     {
-        // 1. Validar los datos de entrada
         $validatedData = $request->validate([
-            // --- Datos del Resguardante ---
             'res_nombre' => 'required|string|max:255',
             'res_apellidos' => 'required|string|max:255',
             'res_puesto' => 'required|string|max:255',
             'res_rfc' => 'nullable|string|size:13|unique:resguardantes,res_rfc,' . $resguardante->id,
+            'res_curp' => 'nullable|string|size:18|unique:resguardantes,res_curp,' . $resguardante->id,
             'res_telefono' => 'nullable|string|max:20',
-            'res_departamento' => 'required|integer|exists:departamentos,id',
+            'res_departamento' => 'required|exists:departamentos,id',
             'id_oficina' => 'nullable|integer|exists:oficinas,id',
-            
-            // --- Datos de Usuario (Opcionales en el update) ---
-            'usuario_pass' => 'nullable|string|min:8', // La contraseña es opcional
-            'usuario_id_rol' => 'nullable|integer|exists:roles,id|gte:3', // El rol es opcional
-
-            // --- Campos Únicos (Reglas complejas) ---
             'res_correo' => [
-                'required',
-                'email',
-                'max:255',
-                // Debe ser único en 'resguardantes', ignorando el ID del resguardante actual
-                Rule::unique('resguardantes', 'res_correo')->ignore($resguardante->id),
-                // Debe ser único en 'usuarios', ignorando el ID del usuario vinculado
+                'nullable', 'email', 'max:255',
+                Rule::unique('resguardantes')->ignore($resguardante->id),
                 Rule::unique('usuarios', 'usuario_correo')->ignore($resguardante->res_id_usuario, 'id')
             ],
-            
-            // Valida que el 'res_id_usuario' no esté ya asignado a OTRO resguardante
-            'res_id_usuario' => 'nullable|exists:usuarios,id|unique:resguardantes,res_id_usuario,' . $resguardante->id,
+            'usuario_id_rol' => 'nullable|integer|exists:roles,id|gte:3'
         ]);
 
-        try {
-            // 2. Iniciar la transacción
-            DB::beginTransaction();
-
-            // 3. Actualizar el Resguardante
-            // (Filtramos solo los campos que pertenecen al modelo Resguardante)
-            $resguardanteData = $request->only([
-                'res_nombre', 'res_apellidos', 'res_puesto', 'res_rfc',
-                'res_correo', 'res_telefono', 'res_departamento', 'id_oficina'
-            ]);
-            $resguardante->update($resguardanteData);
-
-            // 4. Buscar y Actualizar el Usuario
-            $usuario = Usuario::find($resguardante->res_id_usuario);
-            
-            if ($usuario) {
-                // Prepara los datos a actualizar del usuario
-                $usuarioData = [
-                    'usuario_nombre' => $validatedData['res_nombre'] . ' ' . $validatedData['res_apellidos'],
-                    'usuario_correo' => $validatedData['res_correo'],
-                ];
-
-                // Solo actualiza la contraseña SI SE ENVIÓ una nueva
-                if ($request->filled('usuario_pass')) {
-                    $usuarioData['usuario_pass'] = Hash::make($validatedData['usuario_pass']);
+        // (La lógica para actualizar el correo/nombre del usuario si existe es la misma)
+        if ($resguardante->res_correo !== $validatedData['res_correo'] && $resguardante->res_id_usuario) {
+            try {
+                DB::beginTransaction();
+                // 2. Actualizar el perfil del Resguardante
+                // (El $validatedData extra de 'usuario_id_rol' es ignorado por $fillable, lo cual está bien)
+                $resguardante->update($validatedData);
+                // 3. Actualizar el Usuario (si existe)
+                if ($resguardante->res_id_usuario) {
+                    $usuario = Usuario::find($resguardante->res_id_usuario);
+                    if ($usuario) {
+                        // Prepara los datos a actualizar (sincronizar nombre y correo)
+                        $usuarioData = [
+                            'usuario_correo' => $validatedData['res_correo'],
+                            'usuario_nombre' => $validatedData['res_nombre'] . ' ' . $validatedData['res_apellidos'],
+                        ];
+                        if ($request->filled('usuario_id_rol')) {
+                            $usuarioData['usuario_id_rol'] = $validatedData['usuario_id_rol'];
+                        }
+    
+                        $usuario->update($usuarioData);
+                    }
                 }
-                
-                // Solo actualiza el rol SI SE ENVIÓ uno nuevo
-                if ($request->filled('usuario_id_rol')) {
-                    $usuarioData['usuario_id_rol'] = $validatedData['usuario_id_rol'];
-                }
-
-                $usuario->update($usuarioData);
+                DB::commit();
+    
+            } catch (Throwable $e) {
+                DB::rollBack();
+                return response()->json([
+                    'error' => 'Error al actualizar los datos.', 
+                    'message' => $e->getMessage()
+                ], 500);
             }
-
-            // 5. Si todo salió bien, confirmar los cambios
-            DB::commit();
-
-        } catch (Throwable $e) {
-            // 6. Si algo falla, deshacer todo
-            DB::rollBack();
-            
-            return response()->json([
-                'error' => 'Error al actualizar el resguardante y el usuario. La operación fue revertida.',
-                'message' => $e->getMessage()
-            ], 500);
+    
+            return response()->json($resguardante->load('departamento.area', 'usuario.rol', 'oficina.edificio'), 200);
         }
 
-        // 7. Devolver el resguardante actualizado (cargando sus relaciones)
         return response()->json($resguardante->load('departamento.area', 'usuario.rol', 'oficina.edificio'), 200);
     }
 /**
@@ -278,13 +191,58 @@ class ResguardanteController extends Controller
     }
 
     /**
-     * Genera un reporte.
-     * (Sin cambios)
+     * Crea una cuenta de usuario para un resguardante existente.
+     * (Corregido para ASIGNAR un nuevo correo)
      */
-    public function reporte(Request $request)
+    public function crearUsuario(Request $request, Resguardante $resguardante)
     {
-        return response()->json([
-            'info' => 'Función de reporte aún no implementada.'
-        ], 501);
+        // 1. Validar que el resguardante no tenga ya un usuario
+        if ($resguardante->res_id_usuario) {
+            return response()->json(['error' => 'Este resguardante ya tiene una cuenta de usuario.'], 409);
+        }
+
+        // 2. Validar los datos de entrada (¡NUEVA LÓGICA DE CORREO!)
+        $validatedData = $request->validate([
+            'usuario_pass' => 'required|string|min:8',
+            'usuario_id_rol' => 'nullable|integer|exists:roles,id|gte:3', 
+            
+            // Este correo será el nuevo correo para el usuario Y el resguardante
+            'usuario_correo' => [
+                'required', 'email', 'max:255',
+                'unique:usuarios,usuario_correo',  // Único en la tabla usuarios
+                'unique:resguardantes,res_correo'  // Único en la tabla resguardantes
+            ],
+        ]);
+        // 3. Lógica de Rol por Defecto (sigue igual)
+        $roleId = $validatedData['usuario_id_rol'] ?? null;
+        if (is_null($roleId)) {
+            $rolResguardante = Rol::where('rol_nombre', 'Resguardante')->first();
+            if (!$rolResguardante) {
+                return response()->json(['error' => 'El rol por defecto "Resguardante" no se encontró.'], 500);
+            }
+            $roleId = $rolResguardante->id;
+        }
+        try {
+            DB::beginTransaction();
+            // 4. Crear el Usuario
+            $usuario = Usuario::create([
+                'usuario_nombre' => $resguardante->res_nombre . ' ' . $resguardante->res_apellidos,
+                'usuario_correo' => $validatedData['usuario_correo'], // <-- Usa el nuevo correo
+                'usuario_pass' => Hash::make($validatedData['usuario_pass']),
+                'usuario_id_rol' => $roleId,
+            ]);
+            // 5. Vincular el Usuario Y ACTUALIZAR el correo del Resguardante
+            $resguardante->res_id_usuario = $usuario->id;
+            $resguardante->res_correo = $validatedData['usuario_correo']; // <-- Asigna el correo
+            $resguardante->save();
+            DB::commit();
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Error al crear el usuario. La operación fue revertida.',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+        return response()->json($resguardante->load('usuario.rol'), 201);
     }
 }

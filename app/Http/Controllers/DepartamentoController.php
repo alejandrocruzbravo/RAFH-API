@@ -27,13 +27,12 @@ class DepartamentoController extends Controller
     {
         $validatedData = $request->validate([
             'dep_nombre' => 'required|string|max:255',
+            'dep_codigo' => 'required|string|max:255|unique:departamentos,dep_codigo',
             'dep_resposable' => 'nullable|string|max:255',
             'dep_correo_institucional' => 'nullable|email|max:255',
             'id_area' => 'required|exists:areas,id',
         ]);
-
         $departamento = Departamento::create($validatedData);
-
         return response()->json($departamento->load('area'), 201);
     }
 
@@ -55,6 +54,7 @@ class DepartamentoController extends Controller
     {
         $validatedData = $request->validate([
             'dep_nombre' => 'required|string|max:255',
+            'dep_codigo' => 'required|string|max:255|unique:departamentos,dep_codigo,' . $departamento->id,
             'dep_resposable' => 'nullable|string|max:255',
             'dep_correo_institucional' => 'nullable|email|max:255',
             'id_area' => 'required|exists:areas,id',

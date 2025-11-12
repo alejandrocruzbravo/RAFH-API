@@ -26,6 +26,7 @@ class Resguardante extends Model
         'res_departamento', 
         'res_id_usuario',
         'res_rfc',
+        'res_curp',
         'id_oficina'
     ];
 

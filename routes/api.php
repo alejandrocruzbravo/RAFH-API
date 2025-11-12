@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Route;
 
 // Importación de controladores
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\RegisterController;
-
 use App\Http\Controllers\BienController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\ResguardanteController;
@@ -40,9 +38,6 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
     // Rutas protegidas que requieren un token válido
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);          // Cierre de sesión
-        Route::post('/register',[RegisterController::class,'register']);    //Registro de gestor con usuario administrador
-        
-
         Route::get('/dashboard', [DashboardController::class, 'index']);
         
         /**
@@ -64,6 +59,9 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('formularios/oficinas', OficinaFormController::class)->name('formularios.oficinas');
         Route::get('formularios/roles', RolFormController::class)->name('formularios.roles');
         Route::get('formularios/resguardantes', ResguardanteFormController::class)->name('formularios.resguardantes');
+
+        Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])
+                ->name('resguardantes.crearUsuario');
     });
     
 });

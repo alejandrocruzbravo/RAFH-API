@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('res_puesto');
             $table->string('res_rfc', 13)->nullable()->unique();
             $table->string('res_curp', 18)->nullable()->unique();
-            $table->string('res_correo')->unique();
+            $table->string('res_correo')->nullable()->unique();
             $table->string('res_telefono')->nullable(); 
             $table->foreignId('res_id_usuario')
                   ->nullable() 

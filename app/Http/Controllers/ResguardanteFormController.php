@@ -26,8 +26,7 @@ class ResguardanteFormController extends Controller
                     ->orderBy('rol_nombre')
                     ->get();
 
-        // --- AÑADE ESTA CONSULTA ---
-        $oficinas = Oficina::select('id', 'nombre') // Asumiendo que la columna es 'nombre'
+        $oficinas = Oficina::select('id', 'nombre', 'id_departamento') // Asumiendo que la columna es 'nombre'
                            ->with('edificio:id,nombre') // Carga Edificio (solo ID y nombre)
                            ->orderBy('nombre')
                            ->get();

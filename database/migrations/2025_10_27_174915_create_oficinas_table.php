@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('oficinas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('id_edificio')->constrained('edificios');
+            $table->foreignId('id_departamento')->constrained('departamentos');
+            $table->string('ofi_codigo');
             $table->string('nombre'); // Ej. "Piso 1, Oficina 102"
             $table->string('referencia')->nullable();
             $table->timestamps();
