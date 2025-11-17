@@ -23,6 +23,8 @@ use App\Http\Controllers\GestorController;
 use App\Http\Controllers\RolFormController;
 use App\Http\Controllers\ResguardanteFormController;
 use App\Http\Controllers\TraspasoController;
+
+use App\Http\Controllers\QrGenerator;
 /*
 |--------------------------------------------------------------------------
 | Rutas de API
@@ -63,5 +65,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])
                 ->name('resguardantes.crearUsuario');
     });
+
+    Route::get('/obtenerqr/{cantidad}',[QrGenerator::class,'generarQrPdf']);
     
 });
