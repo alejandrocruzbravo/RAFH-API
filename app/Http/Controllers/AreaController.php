@@ -133,4 +133,28 @@ class AreaController extends Controller
         $area->delete();
         return response()->noContent();
     }
+
+    /**
+     * Obtiene la estructura jerárquica (Departamentos y Oficinas)
+     * de un Área específica.
+     * * Responde a: GET /api/areas/{area}/structure
+     */
+    public function getStructure(Area $area)
+    {
+        // 1. Inicia la consulta en los departamentos de ESTA área
+        $structure = $area->departamentos()
+            ->with([
+                // 2. Carga la relación 'oficinas' para CADA departamento
+                'oficinas' => function ($query) {
+                    // 3. Selecciona solo las columnas que necesitas de las oficinas
+                    $query->select('id', 'nombre', 'ofi_codigo', 'id_departamento');
+                }
+            ])
+            // 4. Selecciona solo las columnas que necesitas de los departamentos
+            ->select('id', 'dep_nombre', 'dep_codigo', 'id_area')
+            ->get();
+
+        // 5. Devuelve el JSON
+        return response()->json($structure);
+    }
 }

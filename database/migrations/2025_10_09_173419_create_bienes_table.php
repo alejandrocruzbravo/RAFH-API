@@ -14,7 +14,12 @@ return new class extends Migration
         Schema::create('bienes', function (Blueprint $table) {
             $table->id();
             $table->string('bien_codigo')->unique();
-            $table->string('bien_ubicacion_actual');
+            //$table->string('bien_ubicacion_actual');
+            $table->foreignId('id_oficina')
+                  ->nullable()
+                  ->constrained('oficinas')
+                  ->onDelete('set null');
+            $table->string('bien_estado');
             $table->string('bien_marca');
             $table->string('bien_modelo');
             $table->string('bien_serie');

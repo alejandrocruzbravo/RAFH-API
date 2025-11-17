@@ -36,4 +36,8 @@ class Oficina extends Model
     {
         return $this->belongsTo(Departamento::class, 'id_departamento');
     }
+    public function bienes()
+    {
+        return $this->hasMany(Bien::class, 'id_oficina');
+    }
 }
