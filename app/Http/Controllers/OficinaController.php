@@ -91,15 +91,56 @@ class OficinaController extends Controller
      */
     public function destroy(Oficina $oficina)
     {
-        try {
-            $oficina->delete();
-            return response()->json(null, 204); // Éxito, sin contenido
-
-        } catch (QueryException $e) {
-            // Manejar error si la oficina tiene bienes u otros registros asociados
+        // 1. Chequeo: ¿Tiene bienes asociados?
+        // Esto asume que tu modelo 'Oficina' tiene la relación 'bienes()'
+        if ($oficina->bienes()->exists()) {
             return response()->json([
-                'error' => 'No se puede eliminar la oficina porque tiene registros asociados (como bienes, etc.).'
-            ], 409); // 409 Conflicto
+                'message' => 'No se puede eliminar la oficina. Aún tiene bienes asociados.'
+            ], 409); // 409 Conflict
         }
+        // 3. Si todo está limpio, se elimina
+        $oficina->delete();
+        
+        return response()->json(null, 204); // 204 No Content
+    }
+
+    /**
+     * Muestra los bienes asignados a una oficina específica.
+     * Responde a: GET /api/oficinas/{oficina}/bienes
+     */
+    public function getBienes(Request $request, Oficina $oficina)
+    {
+        // 1. Inicia la consulta en los 'bienes' de ESTA oficina
+        $query = $oficina->bienes()->with([
+            // Cargamos el último resguardo para saber quién lo tiene
+            'resguardos' => function ($q) {
+                $q->latest('resguardo_fecha_asignacion')->limit(1)->with('resguardante:id,res_nombre,res_apellidos');
+            }
+        ]);
+
+        // 2. (Opcional) Filtrar por estado DENTRO de la oficina
+        if ($request->filled('estado')) {
+            $query->where('bien_estado', $request->input('estado'));
+        }
+
+        // 3. (Opcional) Buscar DENTRO de la oficina
+        if ($request->filled('search')) {
+            $term = $request->input('search');
+            $query->where(function($q) use ($term) {
+                $q->where('bien_codigo', 'like', "%{$term}%")
+                  ->orWhere('bien_serie', 'like', "%{$term}%")
+                  ->orWhere('bien_descripcion', 'like', "%{$term}%");
+            });
+        }
+
+        // 4. Selecciona las columnas necesarias para la tabla y pagina
+        $bienes = $query->select(
+                'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 
+                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina'
+            )
+            ->orderBy('id', 'desc')
+            ->paginate(15); // Paginación (más reciente -> más antiguo)
+
+        return $bienes;
     }
 }

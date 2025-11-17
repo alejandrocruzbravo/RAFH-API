@@ -16,6 +16,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolSeeder::class,
             UsuarioSeeder::class,
+            //AlmacenSeeder::class,
+            EdificioSeeder::class,
+            OrganigramaSeeder::class,
+            Camba_cucopSeeder::class,
+            CucopClaveSeeder::class
         ]);
     }
 }

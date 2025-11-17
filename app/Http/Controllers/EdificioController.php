@@ -74,7 +74,7 @@ class EdificioController extends Controller
         } catch (QueryException $e) {
             // Manejar error de llave foránea (si el edificio tiene áreas)
             return response()->json([
-                'error' => 'No se puede eliminar el edificio porque tiene áreas asociadas.'
+                'message' => 'No se puede eliminar el edificio porque tiene oficinas asociadas.'
             ], 409); // 409 Conflicto
         }
     }

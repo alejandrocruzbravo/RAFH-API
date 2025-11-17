@@ -36,4 +36,9 @@ class Departamento extends Model
         // Se usa 'res_departamento' como la clave foránea
         return $this->hasMany(Resguardante::class, 'res_departamento');
     }
+    
+    public function oficinas()
+    {
+        return $this->hasMany(Oficina::class, 'id_departamento');
+    }
 }

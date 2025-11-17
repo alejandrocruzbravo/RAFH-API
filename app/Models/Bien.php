@@ -4,34 +4,65 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\cucopClave;
-use App\Models\ArchivoBien;
-use Carbon\Carbon;
 
 class Bien extends Model
 {
     use HasFactory;
 
-    // Especifica la clave primaria si no es 'id'
-    protected $primaryKey = 'id'; // Actualizado para usar 'id' como llave primaria
     protected $table = 'bienes';
+
     /**
      * Los atributos que se pueden asignar masivamente.
      */
     protected $fillable = [
-        'bien_codigo', // <-- Ahora es un campo normal
-        'bien_nombre',
-        'bien_categoria',
-        'bien_ubicacion_actual',
+        'bien_codigo',
+        'id_oficina',
         'bien_estado',
-        'bien_modelo',
         'bien_marca',
-        'bien_fecha_adquision',
+        'bien_modelo',
+        'bien_serie',
+        'bien_descripcion',
+        'bien_tipo_adquisicion',
+        'bien_fecha_alta',
         'bien_valor_monetario',
-        'bien_id_dep',
+        'bien_clave',
+        'bien_y',
+        'bien_secuencia',
+        'bien_provedor',
+        'bien_numero_factura',
     ];
 
-    static public function generarCodigo($serie,$clave = 0,$y=null) {
+    /**
+     * Obtiene los registros de resguardo (custodia) de este bien.
+     */
+    public function resguardos()
+    {
+        return $this->hasMany(Resguardo::class, 'resguardo_id_bien');
+    }
+
+    /**
+     * Obtiene los movimientos (historial) de este bien.
+     */
+    public function movimientosBien()
+    {
+        return $this->hasMany(MovimientoBien::class, 'movimiento_id_bien');
+    }
+
+    /**
+     * Obtiene las solicitudes de traspaso de este bien.
+     */
+    public function traspasos()
+    {
+        return $this->hasMany(Traspaso::class, 'traspaso_id_bien');
+    }
+    /**
+     * Obtiene la oficina donde este bien está físicamente ubicado.
+     */
+    public function oficina()
+    {
+        return $this->belongsTo(Oficina::class, 'id_oficina');
+    }
+        static public function generarCodigo($serie,$clave = 0,$y=null) {
         $string = ($y !== null) ? 'I'.$clave.'-'.$y->format('y').'-23-'.$serie : 'I'.$clave.'-23-'.$serie;
         return strtoupper($string);
     }
@@ -40,7 +71,4 @@ class Bien extends Model
     public function archivos(){
         return $this->hasMany(ArchivoBien::class);
     }
-
-
-
-}         
+}
