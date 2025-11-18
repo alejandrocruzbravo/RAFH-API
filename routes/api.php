@@ -23,6 +23,8 @@ use App\Http\Controllers\GestorController;
 use App\Http\Controllers\RolFormController;
 use App\Http\Controllers\ResguardanteFormController;
 use App\Http\Controllers\TraspasoController;
+
+use App\Http\Controllers\QrGenerator;
 use App\Http\Controllers\CatalogoCucopController;
 /*
 |--------------------------------------------------------------------------
@@ -68,5 +70,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::put('bienes/{bien}/baja', [BienController::class, 'darDeBaja'])->name('bienes.darDeBaja');
         Route::put('bienes/{bien}/mover', [BienController::class, 'mover'])->name('bienes.mover');
     });
+
+    Route::get('/obtenerqr/{cantidad}',[QrGenerator::class,'generarQrPdf']);
     
 });
