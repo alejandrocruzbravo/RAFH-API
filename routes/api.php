@@ -69,8 +69,9 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
         Route::put('bienes/{bien}/baja', [BienController::class, 'darDeBaja'])->name('bienes.darDeBaja');
         Route::put('bienes/{bien}/mover', [BienController::class, 'mover'])->name('bienes.mover');
+        Route::post('inventario/comparar', [BienController::class, 'compararInventario']);
     });
 
-    Route::get('/obtenerqr/{cantidad}',[QrGenerator::class,'generarQrPdf']);
+    //Route::get('/obtenerqr/{cantidad}',[QrGenerator::class,'generarQrPdf']);
     
 });

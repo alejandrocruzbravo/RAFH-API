@@ -271,4 +271,47 @@ class BienController extends Controller
             ], 500);
         }
     }
+    /**
+     * Compara los bienes escaneados contra lo que dice el sistema.
+     * NO guarda un historial en base de datos.
+     */
+   public function compararInventario(Request $request)
+    {
+        // ... (validación e inputs igual que antes) ...
+
+        $idOficina = $request->input('id_oficina');
+        $escaneados = collect($request->input('claves_escaneadas'));
+
+        // 1. Obtener teóricos
+        $bienesTeoricos = Bien::where('id_oficina', $idOficina)->get();
+        $clavesTeoricas = $bienesTeoricos->pluck('bien_codigo');
+
+        // 2. Calcular ENCONTRADOS
+        $encontrados = $bienesTeoricos->whereIn('bien_codigo', $escaneados);
+
+        // 3. Calcular FALTANTES
+        $faltantes = $bienesTeoricos->whereNotIn('bien_codigo', $escaneados)->values();
+
+        // 4. Calcular SOBRANTES
+        $clavesSobrantes = $escaneados->diff($clavesTeoricas);
+        $sobrantesInfo = Bien::whereIn('bien_codigo', $clavesSobrantes)
+                             ->with('oficina')
+                             ->get();
+
+        return response()->json([
+            'resumen' => [
+                'total_esperados' => $bienesTeoricos->count(),
+                'total_escaneados' => $escaneados->count(),
+                'conteo_encontrados' => $encontrados->count(), // Agregamos conteo
+                'conteo_faltantes' => $faltantes->count(),
+                'conteo_sobrantes' => $sobrantesInfo->count(),
+            ],
+            // --- ¡AQUÍ ESTÁ EL CAMBIO! ---
+            // Añadimos la lista completa de objetos encontrados.
+            // Usamos ->values() para reiniciar los índices del array (0, 1, 2...)
+            'encontrados' => $encontrados->values(), 
+            'faltantes' => $faltantes,
+            'sobrantes' => $sobrantesInfo,
+        ]);
+    }
 }

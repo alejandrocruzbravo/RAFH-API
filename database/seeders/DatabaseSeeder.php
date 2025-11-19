@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
             RolSeeder::class,
             UsuarioSeeder::class,
             DepartamentosSeeder::class,
-            CatalogoResguardante::class
+            CatalogoResguardante::class,
             //AlmacenSeeder::class,
             EdificioSeeder::class,
             OrganigramaSeeder::class,
