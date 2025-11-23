@@ -557,40 +557,48 @@ class BienController extends Controller
      * )
      */
 
-    public function compararInventario(Request $request)
-    {                                                                                     
-        $idOficina = $request->input('id_oficina');
-        $escaneados = collect($request->input('claves_escaneadas'));
+public function compararInventario(Request $request)
+{
+    $idOficina = $request->input('id_oficina');
+    $escaneados = collect($request->input('claves_escaneadas'));
 
-        // 1. Obtener teóricos
-        $bienesTeoricos = Bien::where('id_oficina', $idOficina)->get();
-        $clavesTeoricas = $bienesTeoricos->pluck('bien_codigo');
+    // Definimos la relación optimizada para reutilizarla
+    // Nota: Siempre debes incluir el 'id' para que Eloquent pueda vincular los objetos.
+    $relaciones = 'oficina.departamento:id,dep_nombre';
 
-        // 2. Calcular ENCONTRADOS
-        $encontrados = $bienesTeoricos->whereIn('bien_codigo', $escaneados);
+    // 1. Obtener teóricos
+    $bienesTeoricos = Bien::with($relaciones)
+                          ->where('id_oficina', $idOficina)
+                          ->get();
+                          
+    $clavesTeoricas = $bienesTeoricos->pluck('bien_codigo');
 
-        // 3. Calcular FALTANTES
-        $faltantes = $bienesTeoricos->whereNotIn('bien_codigo', $escaneados)->values();
+    // 2. Calcular ENCONTRADOS
+    $encontrados = $bienesTeoricos->whereIn('bien_codigo', $escaneados);
 
-        // 4. Calcular SOBRANTES
-        $clavesSobrantes = $escaneados->diff($clavesTeoricas);
-        $sobrantesInfo = Bien::whereIn('bien_codigo', $clavesSobrantes)
-                             ->with('oficina')
-                             ->get();
+    // 3. Calcular FALTANTES
+    $faltantes = $bienesTeoricos->whereNotIn('bien_codigo', $escaneados)->values();
 
-        return response()->json([
-            'resumen' => [
-                'total_esperados' => $bienesTeoricos->count(),
-                'total_escaneados' => $escaneados->count(),
-                'conteo_encontrados' => $encontrados->count(),
-                'conteo_faltantes' => $faltantes->count(),
-                'conteo_sobrantes' => $sobrantesInfo->count(),
-            ],
-            'encontrados' => $encontrados->values(), 
-            'faltantes' => $faltantes,
-            'sobrantes' => $sobrantesInfo,
-        ]);
-    }
+    // 4. Calcular SOBRANTES
+    $clavesSobrantes = $escaneados->diff($clavesTeoricas);
+    
+    $sobrantesInfo = Bien::whereIn('bien_codigo', $clavesSobrantes)
+                         ->with($relaciones) // Aplicamos la misma optimización aquí
+                         ->get();
+
+    return response()->json([
+        'resumen' => [
+            'total_esperados'    => $bienesTeoricos->count(),
+            'total_escaneados'   => $escaneados->count(),
+            'conteo_encontrados' => $encontrados->count(),
+            'conteo_faltantes'   => $faltantes->count(),
+            'conteo_sobrantes'   => $sobrantesInfo->count(),
+        ],
+        'encontrados' => $encontrados->values(), 
+        'faltantes'   => $faltantes,
+        'sobrantes'   => $sobrantesInfo,
+    ]);
+}
     /**
      * @OA\Get(
      * path="/api/bienes/bajas",
