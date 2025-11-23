@@ -205,6 +205,7 @@ class BienController extends Controller
 
             return response()->json([
                 'message' => 'Bienes registrados correctamente',
+                'cantidad' => $cantidad,
                 'data'    => $bienesCreados
             ], 201);
 
