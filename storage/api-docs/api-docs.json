@@ -558,56 +558,6 @@
                     }
                 }
             },
-            "put": {
-                "tags": [
-                    "Bienes"
-                ],
-                "summary": "Actualizar información de un bien",
-                "description": "Actualizar Bien",
-                "operationId": "ae3ee53dbca1e0294b45ce26f72916d1",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "bien_descripcion": {
-                                        "type": "string"
-                                    },
-                                    "bien_modelo": {
-                                        "type": "string"
-                                    },
-                                    "bien_serie": {
-                                        "type": "string"
-                                    },
-                                    "bien_estado": {
-                                        "type": "string"
-                                    },
-                                    "bien_codigo": {
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Bien actualizado"
-                    }
-                }
-            },
             "delete": {
                 "tags": [
                     "Bienes"
@@ -638,46 +588,19 @@
                 }
             }
         },
-        "/bienes/{id}/baja": {
+        "/api/bienes/{id}": {
             "put": {
                 "tags": [
                     "Bienes"
                 ],
-                "summary": "Marcar bien como BAJA",
-                "description": "Dar de Baja\n\nCambia el estado del bien a \"Baja\".",
-                "operationId": "14a3898c90441a1cdef4fbe4d906b657",
+                "summary": "Actualizar, Mover, Dar de Baja o Reactivar un Bien",
+                "description": "Este endpoint centraliza todas las modificaciones del Bien. El comportamiento depende del campo 'accion'.",
+                "operationId": "15eaaa742ddcb36b2ddc0ae460e1689f",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Bien actualizado a estado Baja"
-                    },
-                    "500": {
-                        "description": "Error al actualizar"
-                    }
-                }
-            }
-        },
-        "/bienes/{id}/mover": {
-            "put": {
-                "tags": [
-                    "Bienes"
-                ],
-                "summary": "Mover bien a otra oficina",
-                "description": "Mover Bien\n\nCambia la oficina asignada a un bien.",
-                "operationId": "767b537753a179b9a6694311ebf892e5",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
+                        "description": "ID del Bien",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -685,43 +608,134 @@
                     }
                 ],
                 "requestBody": {
+                    "description": "El cuerpo de la petición cambia según la acción deseada.",
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "id_oficina_nueva"
-                                ],
                                 "properties": {
-                                    "id_oficina_nueva": {
-                                        "type": "integer",
-                                        "example": 5
+                                    "accion": {
+                                        "description": "Controlador de flujo. Si se omite, se asume 'editar_info'.",
+                                        "type": "string",
+                                        "enum": [
+                                            "editar_info",
+                                            "baja",
+                                            "mover",
+                                            "reactivar"
+                                        ]
+                                    },
+                                    "bien_marca": {
+                                        "description": "Solo para editar_info",
+                                        "type": "string"
+                                    },
+                                    "bien_modelo": {
+                                        "description": "Solo para editar_info",
+                                        "type": "string"
+                                    },
+                                    "motivo_baja": {
+                                        "description": "Requerido para accion='baja'",
+                                        "type": "string"
+                                    },
+                                    "fecha_baja": {
+                                        "description": "Requerido para accion='baja'",
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "nuevo_id_oficina": {
+                                        "description": "Requerido para accion='mover'",
+                                        "type": "integer"
+                                    },
+                                    "nuevo_id_responsable": {
+                                        "description": "Opcional para accion='mover'",
+                                        "type": "integer"
+                                    },
+                                    "observaciones": {
+                                        "description": "Opcional para accion='mover'",
+                                        "type": "string"
+                                    },
+                                    "id_oficina": {
+                                        "description": "Requerido para accion='reactivar'",
+                                        "type": "integer"
+                                    },
+                                    "id_resguardante": {
+                                        "description": "Opcional para accion='reactivar'",
+                                        "type": "integer"
                                     }
                                 },
                                 "type": "object"
+                            },
+                            "examples": {
+                                "1_editar": {
+                                    "summary": "Caso 1: Editar Información (Default)",
+                                    "value": {
+                                        "accion": "editar_info",
+                                        "bien_marca": "Dell",
+                                        "bien_modelo": "Latitude 5420"
+                                    }
+                                },
+                                "2_baja": {
+                                    "summary": "Caso 2: Dar de Baja",
+                                    "value": {
+                                        "accion": "baja",
+                                        "fecha_baja": "2024-11-22"
+                                    }
+                                },
+                                "3_mover": {
+                                    "summary": "Caso 3: Mover (Traspaso)",
+                                    "value": {
+                                        "accion": "mover",
+                                        "nuevo_id_oficina": 15,
+                                        "nuevo_id_responsable": 4
+                                    }
+                                },
+                                "4_reactivar": {
+                                    "summary": "Caso 4: Reactivar",
+                                    "value": {
+                                        "accion": "reactivar",
+                                        "id_oficina": 10,
+                                        "id_resguardante": 45
+                                    }
+                                }
                             }
                         }
                     }
                 },
                 "responses": {
                     "200": {
-                        "description": "Bien movido exitosamente"
+                        "description": "Operación exitosa",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "El bien ha sido dado de baja correctamente"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
-                    "500": {
-                        "description": "Error al mover"
+                    "422": {
+                        "description": "Error de validación (faltan campos requeridos según la acción)"
                     }
                 }
             }
         },
-        "/inventario/comparar": {
+        "/api/bienes/comparar-inventario": {
             "post": {
                 "tags": [
-                    "Bienes"
+                    "Inventario"
                 ],
-                "summary": "Comparar inventario físico vs sistema",
-                "description": "Comparar Inventario (Auditoría)\n\nCompara una lista de códigos escaneados con los bienes registrados en una oficina.\nDevuelve bienes encontrados, faltantes y sobrantes.",
-                "operationId": "349d5946d8b083d98d1110e7dbdd5a76",
+                "summary": "Comparar Inventario Físico vs Teórico",
+                "description": "Recibe el ID de una oficina y una lista de códigos escaneados (físicos). Retorna un reporte con faltantes, sobrantes y encontrados.",
+                "operationId": "056ac01a92fbc9a1b246fd597af3e4e6",
                 "requestBody": {
+                    "description": "Datos del levantamiento de inventario",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -732,18 +746,17 @@
                                 ],
                                 "properties": {
                                     "id_oficina": {
+                                        "description": "ID de la oficina donde se escanea",
                                         "type": "integer",
-                                        "example": 1
+                                        "example": 15
                                     },
                                     "claves_escaneadas": {
+                                        "description": "Array con los códigos de barras leídos por la pistola/cámara",
                                         "type": "array",
                                         "items": {
-                                            "type": "string"
-                                        },
-                                        "example": [
-                                            "I060200310-25-23-00001",
-                                            "I060200310-25-23-00002"
-                                        ]
+                                            "type": "string",
+                                            "example": "I555-25-23-ABC"
+                                        }
                                     }
                                 },
                                 "type": "object"
@@ -753,7 +766,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Resultado de la comparación",
+                        "description": "Reporte generado correctamente",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -761,38 +774,117 @@
                                         "resumen": {
                                             "properties": {
                                                 "total_esperados": {
-                                                    "type": "integer"
+                                                    "description": "Total en base de datos para esa oficina",
+                                                    "type": "integer",
+                                                    "example": 100
                                                 },
                                                 "total_escaneados": {
-                                                    "type": "integer"
+                                                    "description": "Total de códigos enviados",
+                                                    "type": "integer",
+                                                    "example": 95
                                                 },
                                                 "conteo_encontrados": {
-                                                    "type": "integer"
+                                                    "type": "integer",
+                                                    "example": 90
                                                 },
                                                 "conteo_faltantes": {
-                                                    "type": "integer"
+                                                    "description": "Están en BD pero no se escanearon",
+                                                    "type": "integer",
+                                                    "example": 10
                                                 },
                                                 "conteo_sobrantes": {
-                                                    "type": "integer"
+                                                    "description": "Se escanearon pero no pertenecen a esta oficina",
+                                                    "type": "integer",
+                                                    "example": 5
                                                 }
                                             },
                                             "type": "object"
                                         },
                                         "encontrados": {
+                                            "description": "Lista completa de objetos encontrados",
                                             "type": "array",
                                             "items": {
                                                 "type": "object"
                                             }
                                         },
                                         "faltantes": {
+                                            "description": "Lista completa de objetos faltantes",
                                             "type": "array",
                                             "items": {
                                                 "type": "object"
                                             }
                                         },
                                         "sobrantes": {
+                                            "description": "Lista de objetos sobrantes con su oficina real (si existe)",
                                             "type": "array",
                                             "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación en los datos enviados"
+                    }
+                }
+            }
+        },
+        "/api/bienes/bajas": {
+            "get": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Listar bienes dados de baja",
+                "description": "Obtiene el listado histórico de todos los bienes con estado 'Baja', incluyendo su oficina y resguardos asociados.",
+                "operationId": "ff7b124b708a1dc3324cdc800ae9f929",
+                "responses": {
+                    "200": {
+                        "description": "Listado obtenido correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "cantidad": {
+                                            "type": "integer",
+                                            "example": 15
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "description": "Objeto Bien completo",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "bien_codigo": {
+                                                        "type": "string",
+                                                        "example": "I0-23-XYZ"
+                                                    },
+                                                    "bien_estado": {
+                                                        "type": "string",
+                                                        "example": "Baja"
+                                                    },
+                                                    "oficina": {
+                                                        "description": "Relación con Oficina",
+                                                        "type": "object"
+                                                    },
+                                                    "resguardos": {
+                                                        "description": "Historial de resguardos",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
                                                 "type": "object"
                                             }
                                         }
@@ -2466,6 +2558,10 @@
         {
             "name": "Traspasos",
             "description": "Endpoints para la gestión de solicitudes de traspaso de bienes"
+        },
+        {
+            "name": "Inventario",
+            "description": "Inventario"
         }
     ]
 }

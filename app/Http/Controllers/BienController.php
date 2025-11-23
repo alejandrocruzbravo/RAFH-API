@@ -199,7 +199,14 @@ class BienController extends Controller
             }
 
             DB::commit();
-            return response()->json($bienesCreados, 201);
+            if (count($bienesCreados) > 0) {
+                $bienesCreados[0]->load('oficina.departamento.area');
+            }
+
+            return response()->json([
+                'message' => 'Bienes registrados correctamente',
+                'data'    => $bienesCreados
+            ], 201);
 
         } catch (Throwable $e) {
             DB::rollBack();
@@ -365,11 +372,14 @@ class BienController extends Controller
         // 2. Validación específica para movimientos
         $datos = $request->validate([
             'nuevo_id_oficina' => 'required|exists:oficinas,id',
-            'nuevo_id_responsable' => 'nullable|exists:usuarios,id',
-            'observaciones' => 'nullable|string'
         ]);
+            $biene->update([
+                'id_oficina' => $datos['nuevo_id_oficina'],
+                // ...
+            ]);
 
-        // 3. Ejecución (Usamos Transaction por seguridad de datos)
+         return response()->json(['message' => 'Bien reubicado correctamente', 'data' => $biene]);
+     /*   // 3. Ejecución (Usamos Transaction por seguridad de datos)
         return DB::transaction(function () use ($biene, $datos) {
             
             // A) Crear registro en historial (MovimientosBien)
@@ -386,8 +396,9 @@ class BienController extends Controller
                 // ...
             ]);
 
-            return response()->json(['message' => 'Bien reubicado correctamente', 'data' => $bien]);
+           
         });
+        */
     }
 
     /**

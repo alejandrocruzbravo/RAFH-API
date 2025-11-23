@@ -73,7 +73,7 @@ class ResguardanteController extends Controller
             });
         }
         // Ordena por el ID del resguardante (usando 'latest' en la tabla principal)
-        $resguardantes = $query->latest('resguardantes.created_at')->paginate(10);
+        $resguardantes = $query->latest('resguardantes')->paginate(10);
         return $resguardantes;
     }
     /**
