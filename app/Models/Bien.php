@@ -4,6 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Resguardo;
+use App\Models\MovimientoBien;
+use App\Models\Traspaso;
+use App\Models\Oficina;
+use App\Models\ArchivoBien;
+
 
 class Bien extends Model
 {
@@ -22,6 +28,7 @@ class Bien extends Model
         'bien_modelo',
         'bien_serie',
         'bien_descripcion',
+        'bien_caracteristicas',
         'bien_tipo_adquisicion',
         'bien_fecha_alta',
         'bien_valor_monetario',
@@ -62,7 +69,8 @@ class Bien extends Model
     {
         return $this->belongsTo(Oficina::class, 'id_oficina');
     }
-        static public function generarCodigo($serie,$clave = 0,$y=null) {
+    
+    static public function generarCodigo($serie,$clave = 0,$y=null) {
         $string = ($y !== null) ? 'I'.$clave.'-'.$y->format('y').'-23-'.$serie : 'I'.$clave.'-23-'.$serie;
         return strtoupper($string);
     }

@@ -7,14 +7,48 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Throwable;
 
+/**
+ * @OA\Tag(
+ * name="Catálogo CUCOP",
+ * description="Endpoints para la gestión y búsqueda de claves CUCOP y CAMB"
+ * )
+ */
 class CatalogoCucopController extends Controller
 {
     /**
-     * Busca en el catálogo de CUCOP.
-     * Responde a: GET /api/catalogo-cucop
+     * Listar Catálogo (Búsqueda Exacta)
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
+     * Obtiene una lista paginada de registros. Permite buscar por coincidencia exacta en 'camb' o 'clave_cucop'.
+     *
+     * @OA\Get(
+     * path="/catalogo-cucop",
+     * tags={"Catálogo CUCOP"},
+     * summary="Listar y buscar en el catálogo",
+     * @OA\Parameter(
+     * name="search",
+     * in="query",
+     * description="Término de búsqueda (CAMB o Clave CUCOP exacta)",
+     * required=false,
+     * @OA\Schema(type="string")
+     * ),
+     * @OA\Parameter(
+     * name="page",
+     * in="query",
+     * description="Número de página",
+     * required=false,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Lista de registros paginada",
+     * @OA\JsonContent(
+     * type="object",
+     * @OA\Property(property="data", type="array", @OA\Items(type="object")),
+     * @OA\Property(property="current_page", type="integer"),
+     * @OA\Property(property="total", type="integer")
+     * )
+     * )
+     * )
      */
     public function index(Request $request)
     {
@@ -43,6 +77,38 @@ class CatalogoCucopController extends Controller
 
         return $catalogo;
     }
+
+    /**
+     * Crear Registro en Catálogo
+     *
+     * @OA\Post(
+     * path="/catalogo-cucop",
+     * tags={"Catálogo CUCOP"},
+     * summary="Crear un nuevo registro CUCOP/CAMB",
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"tipo", "clave_cucop", "descripcion"},
+     * @OA\Property(property="tipo", type="string", example="1", description="Requerido por validación"),
+     * @OA\Property(property="clave_cucop", type="integer", example=12345678),
+     * @OA\Property(property="partida_especifica", type="string", example="21101"),
+     * @OA\Property(property="clave_cucop_plus", type="string"),
+     * @OA\Property(property="descripcion", type="string", example="Material de oficina"),
+     * @OA\Property(property="nivel", type="string", example="5"),
+     * @OA\Property(property="camb", type="string", example="C12345"),
+     * @OA\Property(property="unidad_medida", type="string", example="Pieza"),
+     * @OA\Property(property="tipo_contratacion", type="string", example="Adquisiciones")
+     * )
+     * ),
+     * @OA\Response(
+     * response=201,
+     * description="Registro creado exitosamente",
+     * @OA\JsonContent(type="object")
+     * ),
+     * @OA\Response(response=422, description="Error de validación"),
+     * @OA\Response(response=500, description="Error del servidor")
+     * )
+     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -72,8 +138,16 @@ class CatalogoCucopController extends Controller
     }
 
     /**
-     * Muestra un registro específico del catálogo.
-     * GET /api/catalogo-camb-cucop/{id}
+     * Ver Registro
+     *
+     * @OA\Get(
+     * path="/catalogo-cucop/{id}",
+     * tags={"Catálogo CUCOP"},
+     * summary="Obtener detalles de un registro",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(response=200, description="Datos del registro"),
+     * @OA\Response(response=404, description="No encontrado")
+     * )
      */
     public function show(CatalogoCambCucop $catalogo)
     {
@@ -81,8 +155,26 @@ class CatalogoCucopController extends Controller
     }
 
     /**
-     * Actualiza un registro específico del catálogo.
-     * PUT/PATCH /api/catalogo-camb-cucop/{id}
+     * Actualizar Registro
+     *
+     * @OA\Put(
+     * path="/catalogo-cucop/{id}",
+     * tags={"Catálogo CUCOP"},
+     * summary="Actualizar un registro existente",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * @OA\Property(property="tipo", type="string"),
+     * @OA\Property(property="clave_cucop", type="integer"),
+     * @OA\Property(property="partida_especifica", type="string"),
+     * @OA\Property(property="descripcion", type="string"),
+     * @OA\Property(property="camb", type="string")
+     * )
+     * ),
+     * @OA\Response(response=200, description="Registro actualizado"),
+     * @OA\Response(response=422, description="Error de validación o clave duplicada")
+     * )
      */
     public function update(Request $request, CatalogoCambCucop $catalogo)
     {
@@ -117,8 +209,16 @@ class CatalogoCucopController extends Controller
     }
 
     /**
-     * Elimina un registro específico del catálogo.
-     * DELETE /api/catalogo-camb-cucop/{id}
+     * Eliminar Registro
+     *
+     * @OA\Delete(
+     * path="/catalogo-cucop/{id}",
+     * tags={"Catálogo CUCOP"},
+     * summary="Eliminar un registro",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(response=204, description="Eliminado exitosamente"),
+     * @OA\Response(response=500, description="Error del servidor")
+     * )
      */
     public function destroy(CatalogoCambCucop $catalogo)
     {

@@ -27,7 +27,6 @@ class Traspaso extends Model
         'traspaso_id_usuario_origen',
         'traspaso_id_usuario_destino',
         'traspaso_fecha_solicitud',
-        'traspaso_fecha_estado',
         'traspaso_estado',
         'traspaso_observaciones',
     ];
@@ -65,5 +64,10 @@ class Traspaso extends Model
     {
         // Un traspaso pertenece a un Usuario (como destino)
         return $this->belongsTo(Usuario::class, 'traspaso_id_usuario_destino', 'id');
+    }
+    
+    public function confirmacion()
+    {
+        return $this->hasOne(Confirmacion::class, 'confirm_id_traspaso');
     }
 }

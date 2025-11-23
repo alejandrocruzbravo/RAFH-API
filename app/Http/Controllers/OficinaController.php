@@ -11,7 +11,7 @@ class OficinaController extends Controller
 {
     /**
      * Muestra una lista de las oficinas.
-     * GET /api/oficinas
+     * GET /oficinas
      */
     public function index(Request $request)
     {
@@ -33,7 +33,7 @@ class OficinaController extends Controller
 
     /**
      * Almacena una nueva oficina en la base de datos.
-     * POST /api/oficinas
+     * POST /oficinas
      */
     public function store(Request $request)
     {
@@ -53,7 +53,7 @@ class OficinaController extends Controller
 
     /**
      * Muestra una oficina específica.
-     * GET /api/oficinas/{id}
+     * GET /oficinas/{id}
      */
     public function show(Oficina $oficina)
     {
@@ -63,7 +63,7 @@ class OficinaController extends Controller
 
     /**
      * Actualiza una oficina específica.
-     * PUT /api/oficinas/{id}
+     * PUT /oficinas/{id}
      */
     public function update(Request $request, Oficina $oficina)
     {
@@ -87,7 +87,7 @@ class OficinaController extends Controller
 
     /**
      * Elimina una oficina.
-     * DELETE /api/oficinas/{id}
+     * DELETE /oficinas/{id}
      */
     public function destroy(Oficina $oficina)
     {
@@ -106,7 +106,7 @@ class OficinaController extends Controller
 
     /**
      * Muestra los bienes asignados a una oficina específica.
-     * Responde a: GET /api/oficinas/{oficina}/bienes
+     * Responde a: GET /oficinas/{oficina}/bienes
      */
     public function getBienes(Request $request, Oficina $oficina)
     {
@@ -135,7 +135,7 @@ class OficinaController extends Controller
 
         // 4. Selecciona las columnas necesarias para la tabla y pagina
         $bienes = $query->select(
-                'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 
+                'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 'bien_caracteristicas',
                 'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina'
             )
             ->orderBy('id', 'desc')

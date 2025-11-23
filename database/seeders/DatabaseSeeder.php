@@ -18,11 +18,11 @@ class DatabaseSeeder extends Seeder
             UsuarioSeeder::class,
             DepartamentosSeeder::class,
             CatalogoResguardante::class,
-            //AlmacenSeeder::class,
             EdificioSeeder::class,
             OrganigramaSeeder::class,
             Camba_cucopSeeder::class,
-            CucopClaveSeeder::class
+            CucopClaveSeeder::class,
+            CatalogoSYSINVseeder::class,
         ]);
     }
 }

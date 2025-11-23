@@ -10,10 +10,35 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Throwable;
 
+/**
+ * @OA\Tag(
+ * name="Gestores",
+ * description="Endpoints para la gestión de Gestores (Usuarios con rol de Gestor)"
+ * )
+ */
 class GestorController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Listar Gestores
+     *
+     * Muestra una lista paginada de todos los gestores.
+     *
+     * @OA\Get(
+     * path="/gestores",
+     * tags={"Gestores"},
+     * summary="Listar todos los gestores",
+     * @OA\Parameter(name="page", in="query", description="Número de página", required=false, @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Lista paginada de gestores",
+     * @OA\JsonContent(
+     * type="object",
+     * @OA\Property(property="data", type="array", @OA\Items(type="object")),
+     * @OA\Property(property="current_page", type="integer"),
+     * @OA\Property(property="total", type="integer")
+     * )
+     * )
+     * )
      */
     public function index()
     {
@@ -22,7 +47,32 @@ class GestorController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Crear Gestor
+     *
+     * Crea un nuevo gestor y automáticamente le crea una cuenta de usuario con Rol de Gestor (ID 2).
+     *
+     * @OA\Post(
+     * path="/gestores",
+     * tags={"Gestores"},
+     * summary="Registrar un nuevo gestor y su usuario",
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"gestor_nombre", "gestor_apellidos", "gestor_correo", "usuario_pass"},
+     * @OA\Property(property="gestor_nombre", type="string", example="Juan"),
+     * @OA\Property(property="gestor_apellidos", type="string", example="Pérez"),
+     * @OA\Property(property="gestor_correo", type="string", format="email", example="juan.gestor@example.com"),
+     * @OA\Property(property="usuario_pass", type="string", format="password", example="password123", description="Contraseña para el acceso al sistema")
+     * )
+     * ),
+     * @OA\Response(
+     * response=201,
+     * description="Gestor y usuario creados exitosamente",
+     * @OA\JsonContent(type="object")
+     * ),
+     * @OA\Response(response=422, description="Error de validación (correo duplicado)"),
+     * @OA\Response(response=500, description="Error en la transacción")
+     * )
      */
     public function store(Request $request)
     {
@@ -49,7 +99,6 @@ class GestorController extends Controller
                 
                 // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
                 // Asignamos el Rol ID 2 (Gestor) automáticamente.
-                // Ignoramos cualquier 'usuario_id_rol' que el frontend intente enviar.
                 'usuario_id_rol' => 2, 
             ]);
 
@@ -75,7 +124,22 @@ class GestorController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Ver Gestor
+     *
+     * Muestra los detalles de un gestor específico y su usuario asociado.
+     *
+     * @OA\Get(
+     * path="/gestores/{id}",
+     * tags={"Gestores"},
+     * summary="Obtener detalles de un gestor",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Datos del gestor",
+     * @OA\JsonContent(type="object")
+     * ),
+     * @OA\Response(response=404, description="Gestor no encontrado")
+     * )
      */
     public function show(Gestor $gestore) // Usando la variable corregida
     {
@@ -83,10 +147,30 @@ class GestorController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
-     */
-/**
-     * Actualiza un gestor y su usuario correspondiente.
+     * Actualizar Gestor
+     *
+     * Actualiza la información del gestor y sincroniza los cambios en su usuario asociado.
+     *
+     * @OA\Put(
+     * path="/gestores/{id}",
+     * tags={"Gestores"},
+     * summary="Actualizar gestor",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"gestor_nombre", "gestor_apellidos", "gestor_correo"},
+     * @OA\Property(property="gestor_nombre", type="string"),
+     * @OA\Property(property="gestor_apellidos", type="string"),
+     * @OA\Property(property="gestor_correo", type="string", format="email"),
+     * @OA\Property(property="usuario_pass", type="string", format="password", description="Opcional: Nueva contraseña"),
+     * @OA\Property(property="gestor_id_usuario", type="integer", nullable=true, description="ID del usuario vinculado (para validación)")
+     * )
+     * ),
+     * @OA\Response(response=200, description="Gestor actualizado"),
+     * @OA\Response(response=422, description="Error de validación"),
+     * @OA\Response(response=500, description="Error en la transacción")
+     * )
      */
     public function update(Request $request, Gestor $gestore)
     {
@@ -146,7 +230,19 @@ class GestorController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Eliminar Gestor
+     *
+     * Elimina al gestor y también elimina su cuenta de usuario asociada.
+     *
+     * @OA\Delete(
+     * path="/gestores/{id}",
+     * tags={"Gestores"},
+     * summary="Eliminar gestor y su usuario",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(response=204, description="Eliminado exitosamente"),
+     * @OA\Response(response=409, description="Conflicto: Tiene registros asociados"),
+     * @OA\Response(response=500, description="Error en la transacción")
+     * )
      */
     public function destroy(Gestor $gestore)
     {

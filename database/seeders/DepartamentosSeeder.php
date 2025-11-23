@@ -11,17 +11,16 @@ class DepartamentosSeeder extends Seeder
     /**
      * Run the database seeds.
      */
+    // database/seeders/DepartamentosSeeder.php
     public function run(): void
     {
-        //
+        $nombres = ['TEMP-1', 'TEMP-2', 'TEMP-3', 'TEMP-4'];
 
-        DB::table('departamentos')->insert([
-            ['dep_nombre' => 'Recursos Humanos', 'dep_codigo'=> 'D'. fake()->unique()->numerify('###').''],
-            ['dep_nombre' => 'Finanzas','dep_codigo'=> 'D'. fake()->unique()->numerify('###').''],
-            ['dep_nombre' => 'Tecnología','dep_codigo'=> 'D'. fake()->unique()->numerify('###').''],
-            ['dep_nombre' => 'Marketing','dep_codigo'=> 'D'. fake()->unique()->numerify('###').''],
-        ]);
-
-
+        foreach ($nombres as $nombre) {
+            \App\Models\Departamento::factory()->create([
+                'dep_nombre' => $nombre,
+                // La factory se encarga de inventar el código y lo demás automáticamente
+            ]);
+        }
     }
 }

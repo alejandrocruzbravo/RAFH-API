@@ -46,6 +46,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         /**
          * Ruta de recursos
         */
+        Route::get('/bienes/bajas', [BienController::class, 'bajas']);                 // Listar bienes dados de baja    
         Route::apiResource('areas', AreaController::class);
         Route::apiResource('bienes', BienController::class);
         Route::apiResource('resguardantes', ResguardanteController::class);
@@ -63,13 +64,17 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('formularios/roles', RolFormController::class)->name('formularios.roles'); // Formulario de roles
         Route::get('formularios/resguardantes', ResguardanteFormController::class)->name('formularios.resguardantes'); // Formulario de resguardantes
         Route::get('areas/{area}/structure', [AreaController::class, 'getStructure'])->name('areas.structure'); // Estructura jerarquica de área
-        Route::get('oficinas/{oficina}/bienes', [OficinaController::class, 'getBienes'])->name('oficinas.bienes');
-        Route::get('catalogo-cucop', [CatalogoCucopController::class, 'index'])->name('catalogo.index');
+        Route::get('oficinas/{oficina}/bienes', [OficinaController::class, 'getBienes'])->name('oficinas.bienes'); // Bienes por oficina
+        Route::get('catalogo-cucop', [CatalogoCucopController::class, 'index'])->name('catalogo.index'); // Listar catálogo CUCOP
+ 
 
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
+        Route::post('inventario/comparar', [BienController::class, 'compararInventario']);
+        /*
         Route::put('bienes/{bien}/baja', [BienController::class, 'darDeBaja'])->name('bienes.darDeBaja');
         Route::put('bienes/{bien}/mover', [BienController::class, 'mover'])->name('bienes.mover');
-        Route::post('inventario/comparar', [BienController::class, 'compararInventario']);
+        */
+
     });
 
     //Route::get('/obtenerqr/{cantidad}',[QrGenerator::class,'generarQrPdf']);

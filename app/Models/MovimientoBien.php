@@ -27,6 +27,7 @@ class MovimientoBien extends Model
         'movimiento_id_dep',  // Añadido
         'movimiento_fecha',
         'movimiento_tipo',
+        //'movimiento_cantidad',
         'movimiento_id_usuario_origen',
         'movimiento_id_usuario_destino',
         'movimiento_id_usuario_autorizado', // Corregido
