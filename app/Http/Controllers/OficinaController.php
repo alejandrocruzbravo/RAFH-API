@@ -136,7 +136,7 @@ class OficinaController extends Controller
         // 4. Selecciona las columnas necesarias para la tabla y pagina
         $bienes = $query->select(
                 'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 'bien_caracteristicas',
-                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina'
+                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina', 'bien_provedor', 'bien_tipo_adquisicion', 'bien_numero_factura', 'bien_valor_monetario'
             )
             ->orderBy('id', 'desc')
             ->paginate(15); // Paginación (más reciente -> más antiguo)
