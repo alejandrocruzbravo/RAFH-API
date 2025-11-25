@@ -95,7 +95,7 @@ class BienController extends Controller
 
         $bienes = $query->select(
                 'id', 'bien_codigo', 'bien_descripcion', 'bien_caracteristicas','bien_serie', 
-                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina'
+                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina', 'bien_provedor', 'bien_tipo_adquisicion', 'bien_numero_factura', 'bien_valor_monetario'
             )
             ->orderBy('id', 'desc')
             ->paginate(25);
@@ -104,7 +104,7 @@ class BienController extends Controller
     }
 
     /**
-     * Crear Bienes (Lotes)
+     * Crear Bienes (Lotes)s
      *
      * Almacena uno o más bienes generando sus códigos automáticamente en secuencia.
      *
@@ -407,18 +407,35 @@ class BienController extends Controller
      */
     protected function procesarEdicionNormal(Request $request, Bien $biene)
     {
-        // $this->authorize('update', $bien);
+        // $this->authorize('update', $biene);
 
+        // Utilizamos 'sometimes' para permitir actualizaciones parciales
         $datos = $request->validate([
-            'bien_marca' => 'sometimes|string',
-            'bien_modelo' => 'sometimes|string',
-            'bien_caracteristicas' => 'sometimes|string',
-            // ... validaciones generales
+            'bien_descripcion'      => 'sometimes|required|string',
+            'bien_caracteristicas'  => 'sometimes|nullable|string',
+            'bien_marca'            => 'sometimes|nullable|string|max:255',
+            'bien_modelo'           => 'sometimes|nullable|string|max:255',
+            'bien_serie'            => 'sometimes|nullable|string|max:255',
+            'bien_estado'           => 'sometimes|required|string|max:50',
+            'id_oficina'            => 'sometimes|required|integer|exists:oficinas,id',
+            //'id_resguardante'       => 'sometimes|nullable|integer|exists:resguardantes,id', // <--- EL NUEVO CAMPO
+            'bien_valor_monetario'  => 'sometimes|required|numeric|min:0',
+            'bien_numero_factura'   => 'sometimes|nullable|string|max:255',
+            'bien_provedor'         => 'sometimes|nullable|string|max:255', 
+            'bien_tipo_adquisicion' => 'sometimes|nullable|string|max:255',
+            'bien_fecha_alta'       => 'sometimes|nullable|date',
+
         ]);
 
         $biene->update($datos);
 
-        return response()->json(['message' => 'Información actualizada', 'data' => $biene]);
+        // Refrescamos para devolver el objeto completo y actualizado al frontend
+        $biene->refresh();
+
+        return response()->json([
+            'message' => 'Información del bien actualizada correctamente', 
+            'data' => $biene
+        ]);
     }
     /**
      * Lógica para reactivar un bien que estaba de baja.
@@ -641,6 +658,40 @@ public function compararInventario(Request $request)
             'success' => true,
             'cantidad' => $bienesBaja->count(),
             'data' => $bienesBaja
+        ], 200);
+    }
+
+    /**
+     * Busca un bien específico por su código único o número de serie.
+     */
+    public function buscarPorCodigo($codigo)
+    {
+        // Limpiamos el input por si viene con espacios accidentales
+        $codigo = trim($codigo);
+
+        // Buscamos coincidencia exacta en código o serie
+        $bien = Bien::where('bien_codigo', $codigo)
+                    ->orWhere('bien_serie', $codigo)
+                    ->with(['oficina']) // Cargamos la oficina para contexto visual
+                    ->first();
+
+        if (!$bien) {
+            return response()->json([
+                'message' => 'No se encontró ningún bien con ese código o serie.'
+            ], 404);
+        }
+
+        // Validación opcional: Verificar si está dado de baja
+        if ($bien->bien_estado === 'Baja') {
+             return response()->json([
+                'message' => 'El bien existe pero está dado de BAJA.',
+                'data' => $bien
+            ], 409); // 409 Conflict (o 404 si prefieres ocultarlo)
+        }
+
+        return response()->json([
+            'message' => 'Bien encontrado',
+            'data' => $bien
         ], 200);
     }
 }
