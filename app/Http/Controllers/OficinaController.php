@@ -112,6 +112,9 @@ class OficinaController extends Controller
     {
         // 1. Inicia la consulta en los 'bienes' de ESTA oficina
         $query = $oficina->bienes()->with([
+            // --- AGREGAMOS LA RELACIÓN PARA EL TOOLTIP ---
+            'ubicacionActual:id,nombre', 
+            
             // Cargamos el último resguardo para saber quién lo tiene
             'resguardos' => function ($q) {
                 $q->latest('resguardo_fecha_asignacion')->limit(1)->with('resguardante:id,res_nombre,res_apellidos');
@@ -136,10 +139,14 @@ class OficinaController extends Controller
         // 4. Selecciona las columnas necesarias para la tabla y pagina
         $bienes = $query->select(
                 'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 'bien_caracteristicas',
-                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina', 'bien_provedor', 'bien_tipo_adquisicion', 'bien_numero_factura', 'bien_valor_monetario'
+                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina', 'bien_provedor', 
+                'bien_tipo_adquisicion', 'bien_numero_factura', 'bien_valor_monetario',
+                
+                // --- AGREGAMOS EL CAMPO FÍSICO (NECESARIO PARA LA RELACIÓN) ---
+                'bien_ubicacion_actual' 
             )
             ->orderBy('id', 'desc')
-            ->paginate(15); // Paginación (más reciente -> más antiguo)
+            ->paginate(15);
 
         return $bienes;
     }

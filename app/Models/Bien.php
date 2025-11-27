@@ -38,7 +38,8 @@ class Bien extends Model
         'bien_secuencia',
         'bien_provedor',
         'bien_numero_factura',
-    ];
+        'bien_ubicacion_actual'
+    ];  
 
     /**
      * Obtiene los registros de resguardo (custodia) de este bien.
@@ -86,5 +87,10 @@ class Bien extends Model
     public function resguardanteActual()
     {
         return $this->belongsTo(Resguardante::class, 'id_resguardante');
+    }
+
+    public function ubicacionActual()
+    {
+        return $this->belongsTo(Oficina::class, 'bien_ubicacion_actual');
     }
 }
