@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // ...
+
+    $middleware->alias([
+                // Alias para tu middleware de rol consultando BD:
+                'role' => \App\Http\Middleware\UsuarioHasRole::class,
+            ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

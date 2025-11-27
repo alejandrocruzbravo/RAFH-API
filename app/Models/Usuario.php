@@ -33,10 +33,6 @@ class Usuario extends Authenticatable
         ];
     }
 
-    public function isAdmin(){
-        return $this->usuario_id_rol === 1;
-    }
-
     /**
      * Sobrescribimos el nombre de la columna de la contraseña.
      */
@@ -47,7 +43,7 @@ class Usuario extends Authenticatable
     public function rol()
     {
         // Basado en tu diagrama, la llave foránea es 'usuario_id_rol'
-        return $this->belongsTo(Rol::class, 'usuario_id_rol');
+        return $this->belongsTo(Rol::class, 'usuario_id_rol','id');
     }
     // En app/Models/Usuario.php
 

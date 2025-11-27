@@ -40,10 +40,9 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
     Route::post('/login', [AuthController::class, 'login']);
 
     // Rutas protegidas que requieren un token válido
-    Route::middleware(['auth:sanctum'])->group(function () {
+    Route::middleware(['auth:sanctum','role:Administrador'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);          // Cierre de sesión
         Route::get('/dashboard', [DashboardController::class, 'index']);
-        
         /**
          * Ruta de recursos
         */
@@ -77,5 +76,6 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
 
 
     });
-  
+    
+
 });
