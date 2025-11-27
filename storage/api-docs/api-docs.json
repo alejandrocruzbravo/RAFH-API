@@ -425,7 +425,7 @@
                     "Bienes"
                 ],
                 "summary": "Crear bienes (soporta lotes)",
-                "description": "Crear Bienes (Lotes)\n\nAlmacena uno o más bienes generando sus códigos automáticamente en secuencia.",
+                "description": "Crear Bienes (Lotes)s\n\nAlmacena uno o más bienes generando sus códigos automáticamente en secuencia.",
                 "operationId": "f5e591e9cfd87228432b7d7179eaf975",
                 "requestBody": {
                     "required": true,

@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Resguardo;
+use App\Models\Departamento;
+use App\Models\Usuario;
+use App\Models\Oficina;
+use App\Models\Bien;
 
 class Resguardante extends Model
 {
@@ -60,6 +64,13 @@ class Resguardante extends Model
     public function oficina()
     {
         return $this->belongsTo(Oficina::class, 'id_oficina');
+    }
+    /**
+     * Obtiene los bienes asignados actualmente a este resguardante.
+     */
+    public function bienes()
+    {
+        return $this->hasMany(Bien::class, 'id_resguardante');
     }
     
 }

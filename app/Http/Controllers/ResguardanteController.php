@@ -176,42 +176,39 @@ class ResguardanteController extends Controller
      */
     public function destroy(Resguardante $resguardante)
     {
+        // Verificamos explícitamente si tiene bienes asignados.
+        if ($resguardante->bienes()->exists()) {
+            return response()->json([
+                'message' => 'No se puede eliminar al resguardante porque tiene bienes bajo su custodia. Libere los bienes primero.'
+            ], 409);
+        }
+
         try {
-            // Inicia una transacción
             DB::beginTransaction();
 
-            // 1. Guarda el ID del usuario antes de borrar el resguardante
+            // 2. Guardar ID de usuario asociado
             $usuarioId = $resguardante->res_id_usuario;
 
-            // 2. Elimina el Resguardante
-            // (Si falla por una FK, el catch(QueryException) lo atrapará)
+            // 3. Eliminar Resguardante
             $resguardante->delete();
 
-            // 3. Busca y elimina el Usuario asociado (si existe)
+            // 4. Eliminar Usuario de sistema asociado (si existe)
             if ($usuarioId) {
-                $usuario = Usuario::find($usuarioId);
-                if ($usuario) {
-                    $usuario->delete();
-                }
+                // Usamos where para evitar error si el usuario ya no existe
+                \App\Models\Usuario::where('id', $usuarioId)->delete();
             }
             
-            // 4. Confirma la transacción
             DB::commit();
             
-            // Retorna una respuesta exitosa sin contenido
-            return response()->json(null, 204);
+            return response()->json([
+                'message' => 'Resguardante eliminado correctamente.'
+            ], 200); // Usamos 200 para poder devolver el mensaje JSON. 204 No Content no devuelve cuerpo.
 
-        } catch (QueryException $e) { // Error de FK (Bienes asignados)
+        } catch (\Throwable $e) { 
             DB::rollBack();
             return response()->json([
-                'error' => 'No se puede eliminar el resguardante porque tiene bienes asignados.'
-            ], 409); // 409 Conflict
-
-        } catch (Throwable $e) { // Otro tipo de error
-            DB::rollBack();
-            return response()->json([
-                'error' => 'Ocurrió un error durante la eliminación.',
-                'message' => $e->getMessage()
+                'message' => 'Ocurrió un error interno durante la eliminación.',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -270,4 +267,26 @@ class ResguardanteController extends Controller
         }
         return response()->json($resguardante->load('usuario.rol'), 201);
     }
+
+    public function bienesAsignados(Request $request , $id)
+    {
+        // Inicia la consulta sobre los bienes que tienen este id_resguardante  
+        $query = \App\Models\Bien::where('id_resguardante', $id);
+
+        // Filtro de búsqueda (si el usuario escribe en la nueva barra)
+        if ($request->filled('search')) {
+            $term = $request->input('search');
+            $query->where(function($q) use ($term) {
+                $q->where('bien_codigo', 'like', "%{$term}%")
+                  ->orWhere('bien_descripcion', 'like', "%{$term}%")
+                  ->orWhere('bien_serie', 'like', "%{$term}%");
+            });
+        }
+
+        // Paginación de 15 registros como solicitaste
+        $bienes = $query->paginate(15);
+
+        return response()->json($bienes);
+    }
+
 }

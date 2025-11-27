@@ -418,7 +418,7 @@ class BienController extends Controller
             'bien_serie'            => 'sometimes|nullable|string|max:255',
             'bien_estado'           => 'sometimes|required|string|max:50',
             'id_oficina'            => 'sometimes|required|integer|exists:oficinas,id',
-            //'id_resguardante'       => 'sometimes|nullable|integer|exists:resguardantes,id', // <--- EL NUEVO CAMPO
+            'id_resguardante'       => 'sometimes|nullable|integer|exists:resguardantes,id',
             'bien_valor_monetario'  => 'sometimes|required|numeric|min:0',
             'bien_numero_factura'   => 'sometimes|nullable|string|max:255',
             'bien_provedor'         => 'sometimes|nullable|string|max:255', 
@@ -574,49 +574,75 @@ class BienController extends Controller
      * )
      * )
      */
+    public function compararInventario(Request $request)
+    {
+        $idOficina = $request->input('id_oficina');
+        $escaneados = collect($request->input('claves_escaneadas'));
 
-public function compararInventario(Request $request)
-{
-    $idOficina = $request->input('id_oficina');
-    $escaneados = collect($request->input('claves_escaneadas'));
+        // Relaciones base
+        $relacionesBase = 'oficina.departamento:id,dep_nombre';
 
-    // Definimos la relación optimizada para reutilizarla
-    // Nota: Siempre debes incluir el 'id' para que Eloquent pueda vincular los objetos.
-    $relaciones = 'oficina.departamento:id,dep_nombre';
+        // 1. Teóricos
+        $bienesTeoricos = Bien::with($relacionesBase)
+                            ->where('id_oficina', $idOficina)
+                            ->get();
+                            
+        $clavesTeoricas = $bienesTeoricos->pluck('bien_codigo');
 
-    // 1. Obtener teóricos
-    $bienesTeoricos = Bien::with($relaciones)
-                          ->where('id_oficina', $idOficina)
-                          ->get();
-                          
-    $clavesTeoricas = $bienesTeoricos->pluck('bien_codigo');
+        // 2. Encontrados y Faltantes
+        // Usamos makeHidden para quitar las fechas de estos resultados
+        $encontrados = $bienesTeoricos->whereIn('bien_codigo', $escaneados)
+                                      ->values()
+                                      ->makeHidden(['created_at', 'updated_at']);
 
-    // 2. Calcular ENCONTRADOS
-    $encontrados = $bienesTeoricos->whereIn('bien_codigo', $escaneados);
+        $faltantes = $bienesTeoricos->whereNotIn('bien_codigo', $escaneados)
+                                    ->values()
+                                    ->makeHidden(['created_at', 'updated_at']);
 
-    // 3. Calcular FALTANTES
-    $faltantes = $bienesTeoricos->whereNotIn('bien_codigo', $escaneados)->values();
+        // 3. Sobrantes (Cálculo)
+        $clavesSobrantes = $escaneados->diff($clavesTeoricas);
+        
+        // 4. Sobrantes (Consulta)
+        $sobrantesRaw = Bien::whereIn('bien_codigo', $clavesSobrantes)
+                            ->with([
+                                'oficina:id,nombre,id_departamento', 
+                                'resguardos.resguardante:id,res_nombre,res_apellidos,res_departamento', 
+                                'resguardos.resguardante.departamento:id,dep_nombre' 
+                            ])
+                            ->get();
 
-    // 4. Calcular SOBRANTES
-    $clavesSobrantes = $escaneados->diff($clavesTeoricas);
-    
-    $sobrantesInfo = Bien::whereIn('bien_codigo', $clavesSobrantes)
-                         ->with($relaciones) // Aplicamos la misma optimización aquí
-                         ->get();
+        // 5. Mapeo limpio de Sobrantes (Aquí ya no incluimos las fechas)
+        $sobrantesLimpios = $sobrantesRaw->map(function ($bien) {
+            $resguardo = $bien->resguardos->first(); 
+            $resguardante = $resguardo ? $resguardo->resguardante : null;
+            
+            $nombreCompleto = $resguardante 
+                ? trim(($resguardante->res_nombre ?? '') . ' ' . ($resguardante->res_apellidos ?? ''))
+                : 'Sin Resguardante';
 
-    return response()->json([
-        'resumen' => [
-            'total_esperados'    => $bienesTeoricos->count(),
-            'total_escaneados'   => $escaneados->count(),
-            'conteo_encontrados' => $encontrados->count(),
-            'conteo_faltantes'   => $faltantes->count(),
-            'conteo_sobrantes'   => $sobrantesInfo->count(),
-        ],
-        'encontrados' => $encontrados->values(), 
-        'faltantes'   => $faltantes,
-        'sobrantes'   => $sobrantesInfo,
-    ]);
-}
+            return [
+                'id' => $bien->id,
+                'codigo' => $bien->bien_codigo,
+                'descripcion' => $bien->bien_descripcion,
+                'resguardante' => $nombreCompleto,
+                'departamento_resguardante' => $resguardante?->departamento?->dep_nombre ?? 'N/A',
+                'oficina_pertenencia' => $bien->oficina?->nombre ?? 'Sin Oficina'
+            ];
+        });
+
+        return response()->json([
+            'resumen' => [
+                'total_esperados'    => $bienesTeoricos->count(),
+                'total_escaneados'   => $escaneados->count(),
+                'conteo_encontrados' => $encontrados->count(),
+                'conteo_faltantes'   => $faltantes->count(),
+                'conteo_sobrantes'   => $sobrantesLimpios->count(),
+            ],
+            'encontrados' => $encontrados, 
+            'faltantes'   => $faltantes,
+            'sobrantes'   => $sobrantesLimpios, 
+        ]);
+    }
     /**
      * @OA\Get(
      * path="/api/bienes/bajas",
@@ -694,4 +720,88 @@ public function compararInventario(Request $request)
             'data' => $bien
         ], 200);
     }
+
+    public function procesarLevantamiento(Request $request)
+{
+    // Validamos la estructura básica
+    $request->validate([
+        'id_oficina_levantamiento' => 'required|exists:oficinas,id',
+        'encontrados' => 'array',
+        'faltantes'   => 'array',
+        'sobrantes'   => 'array',
+    ]);
+
+    $idOficinaActual = $request->input('id_oficina_levantamiento');
+
+    try {
+        DB::transaction(function () use ($request, $idOficinaActual) {
+            
+            // ---------------------------------------------------------
+            // 1. BIENES ENCONTRADOS
+            // Regla: El estado ACTIVO se conserva o se restaura.
+            // ---------------------------------------------------------
+            if (!empty($request->input('encontrados'))) {
+                Bien::whereIn('id', $request->input('encontrados'))
+                    ->update(['estado' => 'ACTIVO']);
+            }
+
+            // ---------------------------------------------------------
+            // 2. BIENES FALTANTES
+            // Regla: Usuario elige EXTRAVIADO o EN TRÁNSITO.
+            // Si es EN TRÁNSITO, se actualiza la ubicación.
+            // ---------------------------------------------------------
+            $faltantes = $request->input('faltantes', []);
+            foreach ($faltantes as $item) {
+                $bien = Bien::find($item['id']);
+                if (!$bien) continue;
+
+                if ($item['estado'] === 'EN_TRANSITO') {
+                    $bien->estado = 'EN_TRANSITO';
+                    // Si el usuario especificó a dónde se fue, actualizamos.
+                    // Si no, podrías dejar la misma o poner null según tu lógica.
+                    if (isset($item['id_oficina_destino'])) {
+                        $bien->id_oficina = $item['id_oficina_destino'];
+                    }
+                } else {
+                    // Caso EXTRAVIADO (u otro estado)
+                    $bien->estado = 'EXTRAVIADO';
+                    // La ubicación generalmente no cambia, se queda en la oficina donde se perdió
+                }
+                $bien->save();
+            }
+
+            // ---------------------------------------------------------
+            // 3. BIENES SOBRANTES
+            // Regla A: Actualizar a EN TRÁNSITO y mover a la oficina ACTUAL (donde se escaneó).
+            // Regla B (Regresar Origen): Cambiar a ACTIVO y mantener su oficina original.
+            // ---------------------------------------------------------
+            $sobrantes = $request->input('sobrantes', []);
+            foreach ($sobrantes as $item) {
+                $bien = Bien::find($item['id']);
+                if (!$bien) continue;
+
+                if ($item['accion'] === 'ACTUALIZAR_AQUI') {
+                    // El bien físicamente está aquí, pero no pertenece aquí.
+                    // Lo movemos a esta oficina temporalmente con estado EN TRÁNSITO.
+                    $bien->estado = 'EN_TRANSITO';
+                    $bien->id_oficina = $idOficinaActual;
+                } elseif ($item['accion'] === 'REGRESAR_ORIGEN') {
+                    // El usuario decide que el bien debe volver teóricamente a su origen.
+                    // Simplemente lo reactivamos. NO cambiamos el id_oficina 
+                    // (porque en la BD ya tiene su oficina original).
+                    $bien->estado = 'ACTIVO';
+                }
+                $bien->save();
+            }
+        });
+
+        return response()->json(['message' => 'Levantamiento de inventario procesado correctamente.']);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error al procesar el levantamiento',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 }

@@ -23,6 +23,7 @@ class Bien extends Model
     protected $fillable = [
         'bien_codigo',
         'id_oficina',
+        'id_resguardante',
         'bien_estado',
         'bien_marca',
         'bien_modelo',
@@ -78,5 +79,12 @@ class Bien extends Model
 
     public function archivos(){
         return $this->hasMany(ArchivoBien::class);
+    }
+    /**
+     * Relación: Obtiene el resguardante ACTUAL del bien.
+     */
+    public function resguardanteActual()
+    {
+        return $this->belongsTo(Resguardante::class, 'id_resguardante');
     }
 }

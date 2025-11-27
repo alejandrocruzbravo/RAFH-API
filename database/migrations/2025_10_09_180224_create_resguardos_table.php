@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('resguardo_id_bien')->constrained('bienes');
             $table->foreignId('resguardo_id_resguardante')->constrained('resguardantes');
             $table->timestamp('resguardo_fecha_asignacion');
-            $table->string('resguardo_observacion')->nullable();
             $table->foreignId('resguardo_id_dep')->constrained('departamentos');
             $table->timestamps();
         });
