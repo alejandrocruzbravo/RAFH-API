@@ -141,9 +141,7 @@ class OficinaController extends Controller
                 'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 'bien_caracteristicas',
                 'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina', 'bien_provedor', 
                 'bien_tipo_adquisicion', 'bien_numero_factura', 'bien_valor_monetario',
-                
-                // --- AGREGAMOS EL CAMPO FÍSICO (NECESARIO PARA LA RELACIÓN) ---
-                'bien_ubicacion_actual' 
+                'bien_ubicacion_actual' ,'bien_foto'
             )
             ->orderBy('id', 'desc')
             ->paginate(15);
