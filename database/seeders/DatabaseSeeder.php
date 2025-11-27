@@ -20,7 +20,6 @@ class DatabaseSeeder extends Seeder
             UsuarioSeeder::class,
             DepartamentosSeeder::class,
             CatalogoResguardante::class,
-            AlmacenSeeder::class,
             EdificioSeeder::class,
             OrganigramaSeeder::class,
             CatalogoResguardante::class,
