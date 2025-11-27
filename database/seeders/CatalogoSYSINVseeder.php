@@ -40,7 +40,8 @@ class CatalogoSYSINVseeder extends Seeder
                         'bien_marca' => $row[0]=='' ? 'SIN MARCA':$row[0],
                         'bien_modelo' =>$row[1] === '' ? 'SIN MODELO' : $row[1],
                         'bien_serie' => $row[2],
-                        'bien_descripcion' => $row[3].$row[4].$row[5],
+                        'bien_descripcion' => $row[3],
+                        'bien_caracteristicas' => $row[4].$row[5],
                         'bien_tipo_adquisicion' => $row[6],
                         'bien_fecha_alta' => $fechaRegistro,
                         'bien_valor_monetario' => $row[8],
@@ -49,6 +50,7 @@ class CatalogoSYSINVseeder extends Seeder
                         'bien_secuencia' => $row[11],
                         'bien_provedor' => $row[12]==''?'SIN PROVEDOR':$row[12],
                         'bien_numero_factura' => $row[13]==''?'0':$row[13],
+                        'bien_ubicacion_actual' => 9
                         ];
 
                 if (count($batch) > 0) {

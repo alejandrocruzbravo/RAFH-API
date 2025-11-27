@@ -19,26 +19,25 @@ class Departamento extends Model
         'id_area',
     ];
 
-    /**
-     * Obtiene el área a la que pertenece el departamento.
-     */
     public function area()
     {
-        return $this->belongsTo(Area::class, 'id');
+        return $this->belongsTo(Area::class, 'id_area');
     }
-
-    /**
-     * Obtiene los resguardantes que pertenecen a este departamento.
-     */
     public function resguardantes()
     {
-        // --- CORREGIDO ---
-        // Se usa 'res_departamento' como la clave foránea
         return $this->hasMany(Resguardante::class, 'res_departamento');
     }
-    
     public function oficinas()
     {
         return $this->hasMany(Oficina::class, 'id_departamento');
+    }
+
+    public function resguardos()
+    {
+        return $this->hasMany(Resguardo::class, 'resguardo_id_dep');
+    }
+    public function movimientos()
+    {
+        return $this->hasMany(MovimientoBien::class, 'movimiento_id_dep');
     }
 }

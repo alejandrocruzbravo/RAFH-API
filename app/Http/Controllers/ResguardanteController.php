@@ -12,24 +12,56 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
 use App\Models\Rol;
 use Throwable;
+/**
+ * @OA\Tag(
+ * name="Resguardantes",
+ * description="Endpoints para la gestión de los resguardantes"
+ * )
+ */
 class ResguardanteController extends Controller
 {
-    /**
-     * Muestra la lista de resguardantes.
-     * (Corregido para 'res_apellidos' y 'res_rfc')
+/**
+     * Listar Resguardantes
+     *
+     * Obtiene una lista paginada de todos los resguardantes registrados.
+     * Se puede filtrar por nombre, apellido o correo.
+     *
+     * @OA\Get(
+     * path="/resguardantes",
+     * tags={"Resguardantes"},
+     * summary="Listar todos los resguardantes",
+     * @OA\Parameter(
+     * name="search",
+     * in="query",
+     * description="Término para buscar por nombre, apellido o correo",
+     * required=false,
+     * @OA\Schema(type="string")
+     * ),
+     * @OA\Parameter(
+     * name="page",
+     * in="query",
+     * description="Número de página para la paginación",
+     * required=false,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Operación exitosa"
+     * ),
+     * @OA\Response(
+     * response=401,
+     * description="No autenticado"
+     * )
+     * )
      */
     public function index(Request $request)
     {
         // Inicia la consulta
         $query = Resguardante::with('departamento.area', 'oficina.edificio')
-            
-            // --- ¡CORRECCIÓN! ---
             // Usa LEFT JOIN para incluir resguardantes sin usuario
             ->leftJoin('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
-            
             // Selecciona todas las columnas de 'resguardantes' y el 'rol' del usuario (si existe)
             ->select('resguardantes.*', 'usuarios.usuario_id_rol');
-
         // Lógica de búsqueda
         if ($request->filled('search')) {
             $searchTerm = $request->input('search');
@@ -40,15 +72,12 @@ class ResguardanteController extends Controller
                   ->orWhere('resguardantes.res_rfc', 'like', "%{$searchTerm}%");
             });
         }
-
         // Ordena por el ID del resguardante (usando 'latest' en la tabla principal)
-        $resguardantes = $query->latest('resguardantes.created_at')->paginate(10);
-
+        $resguardantes = $query->latest('resguardantes')->paginate(10);
         return $resguardantes;
     }
     /**
      * Almacena un nuevo resguardante.
-     * (Corregido para 'res_apellidos' y 'res_rfc')
      */
 
      public function store(Request $request)
@@ -76,7 +105,6 @@ class ResguardanteController extends Controller
 
     /**
      * Muestra un resguardante específico.
-     * (Sin cambios)
      */
     public function show(Resguardante $resguardante)
     {
@@ -85,7 +113,6 @@ class ResguardanteController extends Controller
 
 /**
      * Actualiza un resguardante y su usuario correspondiente.
-     * (¡CORREGIDO con Transacción para 2 tablas!)
      */
     public function update(Request $request, Resguardante $resguardante)
     {
@@ -146,53 +173,48 @@ class ResguardanteController extends Controller
     }
 /**
      * Elimina un resguardante y su usuario asociado.
-     * (¡CORREGIDO con Transacción!)
      */
     public function destroy(Resguardante $resguardante)
     {
+        // Verificamos explícitamente si tiene bienes asignados.
+        if ($resguardante->bienes()->exists()) {
+            return response()->json([
+                'message' => 'No se puede eliminar al resguardante porque tiene bienes bajo su custodia. Libere los bienes primero.'
+            ], 409);
+        }
+
         try {
-            // Inicia una transacción
             DB::beginTransaction();
 
-            // 1. Guarda el ID del usuario antes de borrar el resguardante
+            // 2. Guardar ID de usuario asociado
             $usuarioId = $resguardante->res_id_usuario;
 
-            // 2. Elimina el Resguardante
-            // (Si falla por una FK, el catch(QueryException) lo atrapará)
+            // 3. Eliminar Resguardante
             $resguardante->delete();
 
-            // 3. Busca y elimina el Usuario asociado (si existe)
+            // 4. Eliminar Usuario de sistema asociado (si existe)
             if ($usuarioId) {
-                $usuario = Usuario::find($usuarioId);
-                if ($usuario) {
-                    $usuario->delete();
-                }
+                // Usamos where para evitar error si el usuario ya no existe
+                \App\Models\Usuario::where('id', $usuarioId)->delete();
             }
             
-            // 4. Confirma la transacción
             DB::commit();
             
-            // Retorna una respuesta exitosa sin contenido
-            return response()->json(null, 204);
+            return response()->json([
+                'message' => 'Resguardante eliminado correctamente.'
+            ], 200); // Usamos 200 para poder devolver el mensaje JSON. 204 No Content no devuelve cuerpo.
 
-        } catch (QueryException $e) { // Error de FK (Bienes asignados)
+        } catch (\Throwable $e) { 
             DB::rollBack();
             return response()->json([
-                'error' => 'No se puede eliminar el resguardante porque tiene bienes asignados.'
-            ], 409); // 409 Conflict
-
-        } catch (Throwable $e) { // Otro tipo de error
-            DB::rollBack();
-            return response()->json([
-                'error' => 'Ocurrió un error durante la eliminación.',
-                'message' => $e->getMessage()
+                'message' => 'Ocurrió un error interno durante la eliminación.',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
      * Crea una cuenta de usuario para un resguardante existente.
-     * (Corregido para ASIGNAR un nuevo correo)
      */
     public function crearUsuario(Request $request, Resguardante $resguardante)
     {
@@ -245,4 +267,26 @@ class ResguardanteController extends Controller
         }
         return response()->json($resguardante->load('usuario.rol'), 201);
     }
+
+    public function bienesAsignados(Request $request , $id)
+    {
+        // Inicia la consulta sobre los bienes que tienen este id_resguardante  
+        $query = \App\Models\Bien::where('id_resguardante', $id);
+
+        // Filtro de búsqueda (si el usuario escribe en la nueva barra)
+        if ($request->filled('search')) {
+            $term = $request->input('search');
+            $query->where(function($q) use ($term) {
+                $q->where('bien_codigo', 'like', "%{$term}%")
+                  ->orWhere('bien_descripcion', 'like', "%{$term}%")
+                  ->orWhere('bien_serie', 'like', "%{$term}%");
+            });
+        }
+
+        // Paginación de 15 registros como solicitaste
+        $bienes = $query->paginate(15);
+
+        return response()->json($bienes);
+    }
+
 }

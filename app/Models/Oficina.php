@@ -40,4 +40,8 @@ class Oficina extends Model
     {
         return $this->hasMany(Bien::class, 'id_oficina');
     }
+    public function resguardantes()
+    {
+        return $this->hasMany(Resguardante::class, 'id_oficina');
+    }
 }

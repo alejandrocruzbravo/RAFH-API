@@ -23,7 +23,8 @@ return new class extends Migration
             $table->string('bien_marca');
             $table->string('bien_modelo');
             $table->string('bien_serie');
-            $table->text('bien_descripcion');
+            $table->string('bien_descripcion');
+            $table->text('bien_caracteristicas')->nullable();
             $table->string('bien_tipo_adquisicion');
             $table->timestamp('bien_fecha_alta')->nullable();
             $table->decimal('bien_valor_monetario',10,2);

@@ -8,25 +8,73 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
+/**
+ * @OA\Tag(
+ * name="Áreas",
+ * description="Endpoints para la gestión de Áreas Generales (ej. Subdirecciones)"
+ * )
+ */
 class AreaController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Listar Áreas
+     *
+     * Obtiene todas las áreas registradas, incluyendo información resumida de sus departamentos, edificio y responsable.
+     *
+     * @OA\Get(
+     * path="/areas",
+     * tags={"Áreas"},
+     * summary="Listar todas las áreas",
+     * @OA\Response(
+     * response=200,
+     * description="Lista de áreas",
+     * @OA\JsonContent(
+     * type="array",
+     * @OA\Items(type="object")
+     * )
+     * )
+     * )
      */
     public function index()
     {
         $areas = Area::with([
             'departamentos:id,dep_nombre',
             'edificio:id,nombre',
-            'responsable:id,res_nombre,res_apellidos' // Asumiendo que esta relación existe
-         ])
-         ->get();
+            'responsable:id,res_nombre,res_apellidos' 
+        ])->get();
 
         return response()->json($areas);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Crear Área
+     *
+     * Registra una nueva área. Valida que el responsable tenga el rol de 'Subdirector'.
+     *
+     * @OA\Post(
+     * path="/areas",
+     * tags={"Áreas"},
+     * summary="Crear una nueva área",
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"area_nombre", "area_codigo"},
+     * @OA\Property(property="area_nombre", type="string", example="Subdirección Académica"),
+     * @OA\Property(property="area_codigo", type="string", example="002"),
+     * @OA\Property(property="id_resguardante_responsable", type="integer", description="ID del resguardante (Debe ser Subdirector)", nullable=true),
+     * @OA\Property(property="id_edificio", type="integer", description="ID del edificio principal", nullable=true)
+     * )
+     * ),
+     * @OA\Response(
+     * response=201,
+     * description="Área creada exitosamente",
+     * @OA\JsonContent(type="object")
+     * ),
+     * @OA\Response(
+     * response=422,
+     * description="Error de validación (código duplicado o responsable inválido)"
+     * )
+     * )
      */
     public function store(Request $request)
     {
@@ -57,7 +105,22 @@ class AreaController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Ver Área
+     *
+     * Muestra los detalles de un área específica.
+     *
+     * @OA\Get(
+     * path="/areas/{id}",
+     * tags={"Áreas"},
+     * summary="Obtener detalles de un área",
+     * @OA\Parameter(name="id", in="path", required=true, description="ID del área", @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Datos del área",
+     * @OA\JsonContent(type="object")
+     * ),
+     * @OA\Response(response=404, description="Área no encontrada")
+     * )
      */
     public function show(string $id)
     {
@@ -70,7 +133,26 @@ class AreaController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualizar Área
+     *
+     * @OA\Put(
+     * path="/areas/{id}",
+     * tags={"Áreas"},
+     * summary="Actualizar información de un área",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"area_nombre", "area_codigo"},
+     * @OA\Property(property="area_nombre", type="string"),
+     * @OA\Property(property="area_codigo", type="string"),
+     * @OA\Property(property="id_resguardante_responsable", type="integer", nullable=true),
+     * @OA\Property(property="id_edificio", type="integer", nullable=true)
+     * )
+     * ),
+     * @OA\Response(response=200, description="Área actualizada"),
+     * @OA\Response(response=422, description="Error de validación")
+     * )
      */
     public function update(Request $request, Area $area)
     {
@@ -106,7 +188,23 @@ class AreaController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Eliminar Área
+     *
+     * @OA\Delete(
+     * path="/areas/{id}",
+     * tags={"Áreas"},
+     * summary="Eliminar un área",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=204,
+     * description="Eliminado exitosamente"
+     * ),
+     * @OA\Response(
+     * response=409,
+     * description="Conflicto: No se puede eliminar porque tiene departamentos o bienes asociados"
+     * ),
+     * @OA\Response(response=500, description="Error del servidor")
+     * )
      */
     public function destroy(string $id)
     {
@@ -135,9 +233,38 @@ class AreaController extends Controller
     }
 
     /**
-     * Obtiene la estructura jerárquica (Departamentos y Oficinas)
-     * de un Área específica.
-     * * Responde a: GET /api/areas/{area}/structure
+     * Obtener Estructura Jerárquica
+     *
+     * Devuelve la lista de departamentos y oficinas que pertenecen a esta área.
+     *
+     * @OA\Get(
+     * path="/areas/{id}/structure",
+     * tags={"Áreas"},
+     * summary="Obtener estructura (Deptos -> Oficinas)",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Estructura jerárquica",
+     * @OA\JsonContent(
+     * type="array",
+     * @OA\Items(
+     * type="object",
+     * @OA\Property(property="id", type="integer"),
+     * @OA\Property(property="dep_nombre", type="string"),
+     * @OA\Property(
+     * property="oficinas",
+     * type="array",
+     * @OA\Items(
+     * type="object",
+     * @OA\Property(property="id", type="integer"),
+     * @OA\Property(property="nombre", type="string"),
+     * @OA\Property(property="ofi_codigo", type="string")
+     * )
+     * )
+     * )
+     * )
+     * )
+     * )
      */
     public function getStructure(Area $area)
     {

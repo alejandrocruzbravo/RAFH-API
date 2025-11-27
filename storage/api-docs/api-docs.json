@@ -1,0 +1,2567 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API de Inventario RAFH",
+        "description": "Documentación interactiva para la gestión de bienes, resguardantes y traspasos.",
+        "contact": {
+            "email": "admin@tu-institucion.com"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8081/api",
+            "description": "Servidor Principal de API"
+        }
+    ],
+    "paths": {
+        "/areas": {
+            "get": {
+                "tags": [
+                    "Áreas"
+                ],
+                "summary": "Listar todas las áreas",
+                "description": "Listar Áreas\n\nObtiene todas las áreas registradas, incluyendo información resumida de sus departamentos, edificio y responsable.",
+                "operationId": "b35f6f18c1157ebddfba113fe246bf90",
+                "responses": {
+                    "200": {
+                        "description": "Lista de áreas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Áreas"
+                ],
+                "summary": "Crear una nueva área",
+                "description": "Crear Área\n\nRegistra una nueva área. Valida que el responsable tenga el rol de 'Subdirector'.",
+                "operationId": "e3b3bd99f2014fd763018a030be4fd38",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "area_nombre",
+                                    "area_codigo"
+                                ],
+                                "properties": {
+                                    "area_nombre": {
+                                        "type": "string",
+                                        "example": "Subdirección Académica"
+                                    },
+                                    "area_codigo": {
+                                        "type": "string",
+                                        "example": "002"
+                                    },
+                                    "id_resguardante_responsable": {
+                                        "description": "ID del resguardante (Debe ser Subdirector)",
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "id_edificio": {
+                                        "description": "ID del edificio principal",
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Área creada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación (código duplicado o responsable inválido)"
+                    }
+                }
+            }
+        },
+        "/areas/{id}": {
+            "get": {
+                "tags": [
+                    "Áreas"
+                ],
+                "summary": "Obtener detalles de un área",
+                "description": "Ver Área\n\nMuestra los detalles de un área específica.",
+                "operationId": "89b34cddfab1b7c50aba560bfbe01069",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del área",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos del área",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Área no encontrada"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Áreas"
+                ],
+                "summary": "Actualizar información de un área",
+                "description": "Actualizar Área",
+                "operationId": "2a84eb6438724f670b6c0e3cce2544e3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "area_nombre",
+                                    "area_codigo"
+                                ],
+                                "properties": {
+                                    "area_nombre": {
+                                        "type": "string"
+                                    },
+                                    "area_codigo": {
+                                        "type": "string"
+                                    },
+                                    "id_resguardante_responsable": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "id_edificio": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Área actualizada"
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Áreas"
+                ],
+                "summary": "Eliminar un área",
+                "description": "Eliminar Área",
+                "operationId": "d8261e1575a2a594723f0f7b6e971997",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Eliminado exitosamente"
+                    },
+                    "409": {
+                        "description": "Conflicto: No se puede eliminar porque tiene departamentos o bienes asociados"
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/areas/{id}/structure": {
+            "get": {
+                "tags": [
+                    "Áreas"
+                ],
+                "summary": "Obtener estructura (Deptos -> Oficinas)",
+                "description": "Obtener Estructura Jerárquica\n\nDevuelve la lista de departamentos y oficinas que pertenecen a esta área.",
+                "operationId": "f07ec1866e04eb756f409e850a802b0d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Estructura jerárquica",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "dep_nombre": {
+                                                "type": "string"
+                                            },
+                                            "oficinas": {
+                                                "type": "array",
+                                                "items": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "nombre": {
+                                                            "type": "string"
+                                                        },
+                                                        "ofi_codigo": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/formularios/areas": {
+            "get": {
+                "tags": [
+                    "Formularios"
+                ],
+                "summary": "Obtener opciones para crear/editar Área",
+                "description": "Obtener opciones para el formulario de Áreas\n\nDevuelve los datos necesarios para poblar los selectores de la interfaz:\nlista de Subdirectores (responsables), edificios y departamentos disponibles.",
+                "operationId": "getAreaFormOptions",
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "responsables": {
+                                            "description": "Lista de resguardantes con rol de Subdirector",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "res_nombre": {
+                                                        "type": "string",
+                                                        "example": "Carlos Subdirector"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "edificios": {
+                                            "description": "Lista de todos los edificios",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "nombre": {
+                                                        "type": "string",
+                                                        "example": "Edificio A"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "departamentos": {
+                                            "description": "Lista de todos los departamentos",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "dep_nombre": {
+                                                        "type": "string",
+                                                        "example": "Recursos Humanos"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/bienes": {
+            "get": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Listar y filtrar bienes",
+                "description": "Listar Bienes\n\nMuestra una lista paginada de bienes. Permite búsqueda global y filtrado por oficina.",
+                "operationId": "343ae9aa31955958a0ce900dcb350c7c",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Término de búsqueda (código, serie, descripción, clave)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "id_oficina",
+                        "in": "query",
+                        "description": "Filtrar bienes por ID de oficina",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa (Paginada)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Crear bienes (soporta lotes)",
+                "description": "Crear Bienes (Lotes)s\n\nAlmacena uno o más bienes generando sus códigos automáticamente en secuencia.",
+                "operationId": "f5e591e9cfd87228432b7d7179eaf975",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "bien_descripcion",
+                                    "bien_clave",
+                                    "bien_y",
+                                    "cantidad",
+                                    "bien_valor_monetario"
+                                ],
+                                "properties": {
+                                    "id_oficina": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "bien_clave": {
+                                        "description": "Clave CAMB",
+                                        "type": "string",
+                                        "example": "I060200310"
+                                    },
+                                    "bien_y": {
+                                        "description": "Año de alta",
+                                        "type": "string",
+                                        "example": "2025"
+                                    },
+                                    "cantidad": {
+                                        "description": "Cantidad de bienes a generar",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "bien_descripcion": {
+                                        "type": "string",
+                                        "example": "Silla ejecutiva"
+                                    },
+                                    "bien_modelo": {
+                                        "type": "string",
+                                        "example": "X-200"
+                                    },
+                                    "bien_serie": {
+                                        "type": "string",
+                                        "example": "SN123456"
+                                    },
+                                    "bien_valor_monetario": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 1500.5
+                                    },
+                                    "bien_marca": {
+                                        "type": "string",
+                                        "example": "Herman Miller"
+                                    },
+                                    "bien_estado": {
+                                        "type": "string",
+                                        "example": "Bueno"
+                                    },
+                                    "bien_provedor": {
+                                        "type": "string"
+                                    },
+                                    "bien_numero_factura": {
+                                        "type": "string"
+                                    },
+                                    "bien_tipo_adquisicion": {
+                                        "type": "string"
+                                    },
+                                    "bien_fecha_alta": {
+                                        "type": "string",
+                                        "format": "date"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Bienes creados exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la transacción"
+                    }
+                }
+            }
+        },
+        "/bienes/{id}": {
+            "get": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Obtener detalles de un bien",
+                "description": "Ver Detalles del Bien\n\nMuestra la ficha técnica completa de un bien, incluyendo historial de resguardos, movimientos y traspasos.",
+                "operationId": "3f79c4e3146f5e78284f2cceb4edaf65",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del bien",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos del bien",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Bien no encontrado"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Eliminar un bien permanentemente",
+                "description": "Eliminar Bien",
+                "operationId": "6dc27a4c694b7cf46d60cf07164a9609",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Bien eliminado"
+                    },
+                    "409": {
+                        "description": "Conflicto: El bien tiene registros asociados"
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/api/bienes/{id}": {
+            "put": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Actualizar, Mover, Dar de Baja o Reactivar un Bien",
+                "description": "Este endpoint centraliza todas las modificaciones del Bien. El comportamiento depende del campo 'accion'.",
+                "operationId": "15eaaa742ddcb36b2ddc0ae460e1689f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del Bien",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "El cuerpo de la petición cambia según la acción deseada.",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "accion": {
+                                        "description": "Controlador de flujo. Si se omite, se asume 'editar_info'.",
+                                        "type": "string",
+                                        "enum": [
+                                            "editar_info",
+                                            "baja",
+                                            "mover",
+                                            "reactivar"
+                                        ]
+                                    },
+                                    "bien_marca": {
+                                        "description": "Solo para editar_info",
+                                        "type": "string"
+                                    },
+                                    "bien_modelo": {
+                                        "description": "Solo para editar_info",
+                                        "type": "string"
+                                    },
+                                    "motivo_baja": {
+                                        "description": "Requerido para accion='baja'",
+                                        "type": "string"
+                                    },
+                                    "fecha_baja": {
+                                        "description": "Requerido para accion='baja'",
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "nuevo_id_oficina": {
+                                        "description": "Requerido para accion='mover'",
+                                        "type": "integer"
+                                    },
+                                    "nuevo_id_responsable": {
+                                        "description": "Opcional para accion='mover'",
+                                        "type": "integer"
+                                    },
+                                    "observaciones": {
+                                        "description": "Opcional para accion='mover'",
+                                        "type": "string"
+                                    },
+                                    "id_oficina": {
+                                        "description": "Requerido para accion='reactivar'",
+                                        "type": "integer"
+                                    },
+                                    "id_resguardante": {
+                                        "description": "Opcional para accion='reactivar'",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "examples": {
+                                "1_editar": {
+                                    "summary": "Caso 1: Editar Información (Default)",
+                                    "value": {
+                                        "accion": "editar_info",
+                                        "bien_marca": "Dell",
+                                        "bien_modelo": "Latitude 5420"
+                                    }
+                                },
+                                "2_baja": {
+                                    "summary": "Caso 2: Dar de Baja",
+                                    "value": {
+                                        "accion": "baja",
+                                        "fecha_baja": "2024-11-22"
+                                    }
+                                },
+                                "3_mover": {
+                                    "summary": "Caso 3: Mover (Traspaso)",
+                                    "value": {
+                                        "accion": "mover",
+                                        "nuevo_id_oficina": 15,
+                                        "nuevo_id_responsable": 4
+                                    }
+                                },
+                                "4_reactivar": {
+                                    "summary": "Caso 4: Reactivar",
+                                    "value": {
+                                        "accion": "reactivar",
+                                        "id_oficina": 10,
+                                        "id_resguardante": 45
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "El bien ha sido dado de baja correctamente"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación (faltan campos requeridos según la acción)"
+                    }
+                }
+            }
+        },
+        "/api/bienes/comparar-inventario": {
+            "post": {
+                "tags": [
+                    "Inventario"
+                ],
+                "summary": "Comparar Inventario Físico vs Teórico",
+                "description": "Recibe el ID de una oficina y una lista de códigos escaneados (físicos). Retorna un reporte con faltantes, sobrantes y encontrados.",
+                "operationId": "056ac01a92fbc9a1b246fd597af3e4e6",
+                "requestBody": {
+                    "description": "Datos del levantamiento de inventario",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_oficina",
+                                    "claves_escaneadas"
+                                ],
+                                "properties": {
+                                    "id_oficina": {
+                                        "description": "ID de la oficina donde se escanea",
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "claves_escaneadas": {
+                                        "description": "Array con los códigos de barras leídos por la pistola/cámara",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "example": "I555-25-23-ABC"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Reporte generado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "resumen": {
+                                            "properties": {
+                                                "total_esperados": {
+                                                    "description": "Total en base de datos para esa oficina",
+                                                    "type": "integer",
+                                                    "example": 100
+                                                },
+                                                "total_escaneados": {
+                                                    "description": "Total de códigos enviados",
+                                                    "type": "integer",
+                                                    "example": 95
+                                                },
+                                                "conteo_encontrados": {
+                                                    "type": "integer",
+                                                    "example": 90
+                                                },
+                                                "conteo_faltantes": {
+                                                    "description": "Están en BD pero no se escanearon",
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "conteo_sobrantes": {
+                                                    "description": "Se escanearon pero no pertenecen a esta oficina",
+                                                    "type": "integer",
+                                                    "example": 5
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "encontrados": {
+                                            "description": "Lista completa de objetos encontrados",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "faltantes": {
+                                            "description": "Lista completa de objetos faltantes",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "sobrantes": {
+                                            "description": "Lista de objetos sobrantes con su oficina real (si existe)",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación en los datos enviados"
+                    }
+                }
+            }
+        },
+        "/api/bienes/bajas": {
+            "get": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Listar bienes dados de baja",
+                "description": "Obtiene el listado histórico de todos los bienes con estado 'Baja', incluyendo su oficina y resguardos asociados.",
+                "operationId": "ff7b124b708a1dc3324cdc800ae9f929",
+                "responses": {
+                    "200": {
+                        "description": "Listado obtenido correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "cantidad": {
+                                            "type": "integer",
+                                            "example": 15
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "description": "Objeto Bien completo",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "bien_codigo": {
+                                                        "type": "string",
+                                                        "example": "I0-23-XYZ"
+                                                    },
+                                                    "bien_estado": {
+                                                        "type": "string",
+                                                        "example": "Baja"
+                                                    },
+                                                    "oficina": {
+                                                        "description": "Relación con Oficina",
+                                                        "type": "object"
+                                                    },
+                                                    "resguardos": {
+                                                        "description": "Historial de resguardos",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/catalogo-cucop": {
+            "get": {
+                "tags": [
+                    "Catálogo CUCOP"
+                ],
+                "summary": "Listar y buscar en el catálogo",
+                "description": "Listar Catálogo (Búsqueda Exacta)\n\nObtiene una lista paginada de registros. Permite buscar por coincidencia exacta en 'camb' o 'clave_cucop'.",
+                "operationId": "044dc182957a63eaa71ac08348ea86c8",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Término de búsqueda (CAMB o Clave CUCOP exacta)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de registros paginada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Catálogo CUCOP"
+                ],
+                "summary": "Crear un nuevo registro CUCOP/CAMB",
+                "description": "Crear Registro en Catálogo",
+                "operationId": "20b12fe126225b8d45dcbb8869f034b7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "tipo",
+                                    "clave_cucop",
+                                    "descripcion"
+                                ],
+                                "properties": {
+                                    "tipo": {
+                                        "description": "Requerido por validación",
+                                        "type": "string",
+                                        "example": "1"
+                                    },
+                                    "clave_cucop": {
+                                        "type": "integer",
+                                        "example": 12345678
+                                    },
+                                    "partida_especifica": {
+                                        "type": "string",
+                                        "example": "21101"
+                                    },
+                                    "clave_cucop_plus": {
+                                        "type": "string"
+                                    },
+                                    "descripcion": {
+                                        "type": "string",
+                                        "example": "Material de oficina"
+                                    },
+                                    "nivel": {
+                                        "type": "string",
+                                        "example": "5"
+                                    },
+                                    "camb": {
+                                        "type": "string",
+                                        "example": "C12345"
+                                    },
+                                    "unidad_medida": {
+                                        "type": "string",
+                                        "example": "Pieza"
+                                    },
+                                    "tipo_contratacion": {
+                                        "type": "string",
+                                        "example": "Adquisiciones"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Registro creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/catalogo-cucop/{id}": {
+            "get": {
+                "tags": [
+                    "Catálogo CUCOP"
+                ],
+                "summary": "Obtener detalles de un registro",
+                "description": "Ver Registro",
+                "operationId": "ffdf707c391a93a2fca1237bb98217e0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos del registro"
+                    },
+                    "404": {
+                        "description": "No encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Catálogo CUCOP"
+                ],
+                "summary": "Actualizar un registro existente",
+                "description": "Actualizar Registro",
+                "operationId": "36da6f1d22cd82fc55830d2004d2eb8b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "tipo": {
+                                        "type": "string"
+                                    },
+                                    "clave_cucop": {
+                                        "type": "integer"
+                                    },
+                                    "partida_especifica": {
+                                        "type": "string"
+                                    },
+                                    "descripcion": {
+                                        "type": "string"
+                                    },
+                                    "camb": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Registro actualizado"
+                    },
+                    "422": {
+                        "description": "Error de validación o clave duplicada"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Catálogo CUCOP"
+                ],
+                "summary": "Eliminar un registro",
+                "description": "Eliminar Registro",
+                "operationId": "b117349011a44cb2bc01f040d77e2242",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Eliminado exitosamente"
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/dashboard/stats": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Obtener estadísticas del Dashboard",
+                "description": "Obtener Estadísticas Generales\n\nRetorna un resumen completo para el panel de control: conteos totales, \núltimos registros, notificaciones pendientes y datos para gráficas.",
+                "operationId": "28b3b6a9ba335d5d4eb2c607ce279eae",
+                "responses": {
+                    "200": {
+                        "description": "Datos del dashboard recuperados exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "stats": {
+                                            "description": "Contadores generales del sistema",
+                                            "properties": {
+                                                "bienes_registrados": {
+                                                    "type": "integer",
+                                                    "example": 20213
+                                                },
+                                                "gestores_asignados": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "areas_asociadas": {
+                                                    "type": "integer",
+                                                    "example": 8
+                                                },
+                                                "resguardantes_registrados": {
+                                                    "type": "integer",
+                                                    "example": 150
+                                                },
+                                                "departamentos_totales": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "oficinas_totales": {
+                                                    "type": "integer",
+                                                    "example": 45
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "ultimo_bien_registrado": {
+                                            "description": "Información breve del último bien dado de alta",
+                                            "properties": {
+                                                "nombre": {
+                                                    "type": "string",
+                                                    "example": "Laptop HP ProBook"
+                                                },
+                                                "cantidad": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "ultima_transferencia": {
+                                            "description": "Información breve del último traspaso completado",
+                                            "properties": {
+                                                "bien_nombre": {
+                                                    "type": "string",
+                                                    "example": "Silla Ejecutiva"
+                                                },
+                                                "realizada_por": {
+                                                    "type": "string",
+                                                    "example": "Juan Pérez"
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "notificaciones": {
+                                            "description": "La solicitud de traspaso pendiente más reciente (para el widget de alerta)",
+                                            "properties": {
+                                                "id_traspaso": {
+                                                    "type": "integer",
+                                                    "example": 35
+                                                },
+                                                "bien_nombre": {
+                                                    "type": "string",
+                                                    "example": "Monitor Dell"
+                                                },
+                                                "emisor": {
+                                                    "type": "string",
+                                                    "example": "Ana López"
+                                                },
+                                                "receptor": {
+                                                    "type": "string",
+                                                    "example": "Carlos Ruiz"
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "ultimos_movimientos": {
+                                            "description": "Lista de los 5 movimientos más recientes",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "tipo": {
+                                                        "type": "string",
+                                                        "example": "Asignación"
+                                                    },
+                                                    "bien_involucrado": {
+                                                        "type": "string",
+                                                        "example": "Teclado USB"
+                                                    },
+                                                    "gestor_encargado": {
+                                                        "type": "string",
+                                                        "example": "Admin"
+                                                    },
+                                                    "resguardante_responsable": {
+                                                        "type": "string",
+                                                        "example": "Pedro Gomez"
+                                                    },
+                                                    "area": {
+                                                        "type": "string",
+                                                        "example": "Sistemas"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "estados_bienes": {
+                                            "description": "Datos para la gráfica de pastel (conteo por estado)",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "bien_estado": {
+                                                        "type": "string",
+                                                        "example": "Bueno"
+                                                    },
+                                                    "total": {
+                                                        "type": "integer",
+                                                        "example": 150
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/departamentos": {
+            "get": {
+                "tags": [
+                    "Departamentos"
+                ],
+                "summary": "Listar departamentos",
+                "description": "Listar Departamentos\n\nMuestra una lista paginada de los departamentos registrados, incluyendo su área relacionada.",
+                "operationId": "d7c2df5a90f3b4f955fd66cfb7b5c54b",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de departamentos paginada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Departamentos"
+                ],
+                "summary": "Crear un nuevo departamento",
+                "description": "Crear Departamento\n\nAlmacena un nuevo departamento en la base de datos.",
+                "operationId": "f761c5548f8c05c486bee47d5bfd95ba",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "dep_nombre",
+                                    "dep_codigo",
+                                    "id_area"
+                                ],
+                                "properties": {
+                                    "dep_nombre": {
+                                        "type": "string",
+                                        "example": "Recursos Humanos"
+                                    },
+                                    "dep_codigo": {
+                                        "type": "string",
+                                        "example": "DEP-RH-001"
+                                    },
+                                    "id_area": {
+                                        "description": "ID del Área a la que pertenece",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "dep_resposable": {
+                                        "description": "Nombre del responsable (opcional)",
+                                        "type": "string",
+                                        "example": "Lic. Ana Méndez"
+                                    },
+                                    "dep_correo_institucional": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "rh@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Departamento creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación (código duplicado o área no existente)"
+                    }
+                }
+            }
+        },
+        "/departamentos/{id}": {
+            "get": {
+                "tags": [
+                    "Departamentos"
+                ],
+                "summary": "Obtener detalles de un departamento",
+                "description": "Ver Departamento\n\nMuestra los detalles de un departamento específico.",
+                "operationId": "ca2ef36a7d5c331998bf0786448dcd52",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del departamento",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos del departamento",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Departamento no encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Departamentos"
+                ],
+                "summary": "Actualizar un departamento existente",
+                "description": "Actualizar Departamento",
+                "operationId": "3bbe631b13b9bb04bb5304c57164b578",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "dep_nombre",
+                                    "dep_codigo",
+                                    "id_area"
+                                ],
+                                "properties": {
+                                    "dep_nombre": {
+                                        "type": "string"
+                                    },
+                                    "dep_codigo": {
+                                        "type": "string"
+                                    },
+                                    "id_area": {
+                                        "type": "integer"
+                                    },
+                                    "dep_resposable": {
+                                        "type": "string"
+                                    },
+                                    "dep_correo_institucional": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Departamento actualizado"
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Departamentos"
+                ],
+                "summary": "Eliminar un departamento",
+                "description": "Eliminar Departamento",
+                "operationId": "94bba00e0e3d419f0b5b9536e4021294",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Eliminado exitosamente"
+                    },
+                    "409": {
+                        "description": "Conflicto: No se puede eliminar porque tiene resguardantes u oficinas asociadas"
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/formularios/departamentos": {
+            "get": {
+                "tags": [
+                    "Formularios"
+                ],
+                "summary": "Obtener opciones para crear/editar Departamento",
+                "description": "Obtener opciones para el formulario de Departamentos\n\nDevuelve los datos necesarios para poblar los selectores:\nlista de Áreas disponibles y lista de Jefes de Departamento (responsables).",
+                "operationId": "getDepartamentoFormOptions",
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "areas": {
+                                            "description": "Lista de todas las áreas",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "area_nombre": {
+                                                        "type": "string",
+                                                        "example": "Subdirección Administrativa"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "responsables": {
+                                            "description": "Lista de resguardantes con rol de Jefe de Departamento",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 5
+                                                    },
+                                                    "res_nombre": {
+                                                        "type": "string",
+                                                        "example": "María González"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/edificios": {
+            "get": {
+                "tags": [
+                    "Edificios"
+                ],
+                "summary": "Listar todos los edificios",
+                "description": "Listar Edificios\n\nMuestra una lista paginada de los edificios registrados.",
+                "operationId": "0f1855e2c8ca1a039fc278b5082f2b2d",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de edificios",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "nombre": {
+                                                        "type": "string",
+                                                        "example": "Edificio A"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Edificios"
+                ],
+                "summary": "Registrar un nuevo edificio",
+                "description": "Crear Edificio",
+                "operationId": "ebd1c93594615d069100ad724c655497",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nombre"
+                                ],
+                                "properties": {
+                                    "nombre": {
+                                        "description": "Nombre único del edificio",
+                                        "type": "string",
+                                        "example": "Edificio Z"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Edificio creado exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 5
+                                        },
+                                        "nombre": {
+                                            "type": "string",
+                                            "example": "Edificio Z"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación (nombre duplicado)"
+                    }
+                }
+            }
+        },
+        "/edificios/{id}": {
+            "get": {
+                "tags": [
+                    "Edificios"
+                ],
+                "summary": "Obtener detalles de un edificio",
+                "description": "Ver Edificio\n\nMuestra un edificio específico y carga sus áreas asociadas.",
+                "operationId": "3596c40dc06770d732fa18cff42f29bd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos del edificio con sus áreas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "nombre": {
+                                            "type": "string",
+                                            "example": "Edificio A"
+                                        },
+                                        "areas": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "area_nombre": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Edificio no encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Edificios"
+                ],
+                "summary": "Actualizar nombre de un edificio",
+                "description": "Actualizar Edificio",
+                "operationId": "c551e24928046e5bd7328b2421456436",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "nombre"
+                                ],
+                                "properties": {
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Edificio A (Renovado)"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Edificio actualizado"
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Edificios"
+                ],
+                "summary": "Eliminar un edificio",
+                "description": "Eliminar Edificio",
+                "operationId": "d9556bba005c14945b99944e71cc3094",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Eliminado exitosamente"
+                    },
+                    "409": {
+                        "description": "Conflicto: No se puede eliminar porque tiene áreas u oficinas asociadas"
+                    },
+                    "500": {
+                        "description": "Error interno del servidor"
+                    }
+                }
+            }
+        },
+        "/gestores": {
+            "get": {
+                "tags": [
+                    "Gestores"
+                ],
+                "summary": "Listar todos los gestores",
+                "description": "Listar Gestores\n\nMuestra una lista paginada de todos los gestores.",
+                "operationId": "f483deff4b4b680a38f36887973dae95",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de gestores",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Gestores"
+                ],
+                "summary": "Registrar un nuevo gestor y su usuario",
+                "description": "Crear Gestor\n\nCrea un nuevo gestor y automáticamente le crea una cuenta de usuario con Rol de Gestor (ID 2).",
+                "operationId": "5a00eb1a38724e3204a5b1cc4f16c28d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "gestor_nombre",
+                                    "gestor_apellidos",
+                                    "gestor_correo",
+                                    "usuario_pass"
+                                ],
+                                "properties": {
+                                    "gestor_nombre": {
+                                        "type": "string",
+                                        "example": "Juan"
+                                    },
+                                    "gestor_apellidos": {
+                                        "type": "string",
+                                        "example": "Pérez"
+                                    },
+                                    "gestor_correo": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "juan.gestor@example.com"
+                                    },
+                                    "usuario_pass": {
+                                        "description": "Contraseña para el acceso al sistema",
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Gestor y usuario creados exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación (correo duplicado)"
+                    },
+                    "500": {
+                        "description": "Error en la transacción"
+                    }
+                }
+            }
+        },
+        "/gestores/{id}": {
+            "get": {
+                "tags": [
+                    "Gestores"
+                ],
+                "summary": "Obtener detalles de un gestor",
+                "description": "Ver Gestor\n\nMuestra los detalles de un gestor específico y su usuario asociado.",
+                "operationId": "2b9b07006dcec79f3c877dafdb403f0a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos del gestor",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Gestor no encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Gestores"
+                ],
+                "summary": "Actualizar gestor",
+                "description": "Actualizar Gestor\n\nActualiza la información del gestor y sincroniza los cambios en su usuario asociado.",
+                "operationId": "5c512b91e2dc676730b046e3bfc154b8",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "gestor_nombre",
+                                    "gestor_apellidos",
+                                    "gestor_correo"
+                                ],
+                                "properties": {
+                                    "gestor_nombre": {
+                                        "type": "string"
+                                    },
+                                    "gestor_apellidos": {
+                                        "type": "string"
+                                    },
+                                    "gestor_correo": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "usuario_pass": {
+                                        "description": "Opcional: Nueva contraseña",
+                                        "type": "string",
+                                        "format": "password"
+                                    },
+                                    "gestor_id_usuario": {
+                                        "description": "ID del usuario vinculado (para validación)",
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Gestor actualizado"
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    },
+                    "500": {
+                        "description": "Error en la transacción"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Gestores"
+                ],
+                "summary": "Eliminar gestor y su usuario",
+                "description": "Eliminar Gestor\n\nElimina al gestor y también elimina su cuenta de usuario asociada.",
+                "operationId": "4955cd67b657fe80b6da4ab1945ca6bc",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Eliminado exitosamente"
+                    },
+                    "409": {
+                        "description": "Conflicto: Tiene registros asociados"
+                    },
+                    "500": {
+                        "description": "Error en la transacción"
+                    }
+                }
+            }
+        },
+        "/formularios/oficinas": {
+            "get": {
+                "tags": [
+                    "Formularios"
+                ],
+                "summary": "Obtener opciones para crear/editar Oficina",
+                "description": "Obtener opciones para el formulario de Oficinas\n\nDevuelve la lista de edificios disponibles para poblar el selector en la creación/edición de oficinas.",
+                "operationId": "getOficinaFormOptions",
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "edificios": {
+                                            "description": "Lista de todos los edificios",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "nombre": {
+                                                        "type": "string",
+                                                        "example": "Edificio A"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/resguardantes": {
+            "get": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Listar todos los resguardantes",
+                "description": "Listar Resguardantes\n\nObtiene una lista paginada de todos los resguardantes registrados.\nSe puede filtrar por nombre, apellido o correo.",
+                "operationId": "29e71df08648cb3f2706e8230d0e0ef9",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Término para buscar por nombre, apellido o correo",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página para la paginación",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa"
+                    },
+                    "401": {
+                        "description": "No autenticado"
+                    }
+                }
+            }
+        },
+        "/formularios/resguardantes": {
+            "get": {
+                "tags": [
+                    "Formularios"
+                ],
+                "summary": "Obtener opciones para crear/editar Resguardante",
+                "description": "Obtener opciones para el formulario de Resguardantes\n\nDevuelve los datos necesarios para poblar los selectores en la creación/edición de resguardantes:\ndepartamentos, roles válidos y oficinas disponibles.",
+                "operationId": "getResguardanteFormOptions",
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "departamentos": {
+                                            "description": "Lista de departamentos",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "dep_nombre": {
+                                                        "type": "string",
+                                                        "example": "Recursos Humanos"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "roles": {
+                                            "description": "Lista de roles permitidos para resguardantes (ID >= 3)",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 3
+                                                    },
+                                                    "rol_nombre": {
+                                                        "type": "string",
+                                                        "example": "Jefe de Departamento"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "oficinas": {
+                                            "description": "Lista de oficinas con su edificio",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "nombre": {
+                                                        "type": "string",
+                                                        "example": "Oficina 101"
+                                                    },
+                                                    "id_departamento": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "edificio": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "nombre": {
+                                                                "type": "string",
+                                                                "example": "Edificio A"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/formularios/roles": {
+            "get": {
+                "tags": [
+                    "Formularios"
+                ],
+                "summary": "Obtener lista completa de roles",
+                "description": "Obtener lista de roles\n\nDevuelve una lista de todos los roles disponibles en el sistema.\nSe utiliza para poblar selectores en formularios de creación/edición de usuarios.",
+                "operationId": "getRolFormOptions",
+                "responses": {
+                    "200": {
+                        "description": "Lista de roles obtenida exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 1
+                                            },
+                                            "rol_nombre": {
+                                                "type": "string",
+                                                "example": "Administrador"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            }
+        },
+        "/traspasos": {
+            "get": {
+                "tags": [
+                    "Traspasos"
+                ],
+                "summary": "Listar y filtrar traspasos",
+                "description": "Listar Solicitudes de Traspaso\n\nObtiene una lista paginada de las solicitudes. Permite filtrar por estado y buscar por nombre del bien o solicitante.",
+                "operationId": "15b23ff06d3105a724f263cd2cb23a52",
+                "parameters": [
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "description": "Filtrar por estado (ej. Pendiente, Aprobado, Rechazado)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Buscar por nombre del bien o nombre del usuario solicitante",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de solicitudes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Traspasos"
+                ],
+                "summary": "Crear nueva solicitud",
+                "description": "Crear Solicitud de Traspaso\n\nCrea una nueva solicitud de traspaso y emite un evento WebSocket en tiempo real.",
+                "operationId": "c26f0ee0f06dc1aad2ebee4cdb839d23",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "traspaso_id_bien",
+                                    "traspaso_id_usuario_destino"
+                                ],
+                                "properties": {
+                                    "traspaso_id_bien": {
+                                        "description": "ID del bien a traspasar",
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "traspaso_id_usuario_destino": {
+                                        "description": "ID del usuario receptor",
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "traspaso_observaciones": {
+                                        "description": "Motivo o detalles",
+                                        "type": "string",
+                                        "example": "Cambio de oficina"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Solicitud creada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    },
+                    "500": {
+                        "description": "Error del servidor o transacción fallida"
+                    }
+                }
+            }
+        },
+        "/traspasos/{id}": {
+            "get": {
+                "tags": [
+                    "Traspasos"
+                ],
+                "summary": "Obtener detalles de una solicitud",
+                "description": "Ver Detalles de Solicitud\n\nMuestra la información completa de una solicitud, incluyendo detalles profundos del origen y destino (Resguardante, Depto, Oficina).",
+                "operationId": "58953d484fd3fbe42fd44513f0633b8d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID del traspaso",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Datos del traspaso con relaciones",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Solicitud no encontrada"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Traspasos"
+                ],
+                "summary": "Aprobar o Rechazar solicitud",
+                "description": "Actualizar Estado de Solicitud\n\nPermite Aprobar o Rechazar una solicitud. Emite un evento WebSocket al cambiar el estado.",
+                "operationId": "a96c5df706b770bf80dc88dec5d87a41",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "estado"
+                                ],
+                                "properties": {
+                                    "estado": {
+                                        "type": "string",
+                                        "enum": [
+                                            "Aprobado",
+                                            "Rechazado"
+                                        ],
+                                        "example": "Aprobado"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Estado actualizado"
+                    },
+                    "422": {
+                        "description": "Error de validación (estado inválido)"
+                    },
+                    "500": {
+                        "description": "Error del servidor"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Traspasos"
+                ],
+                "summary": "Eliminar solicitud (No implementado)",
+                "description": "Eliminar Solicitud",
+                "operationId": "589f4c53dd8b9145b270d40933417eac",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Operación exitosa (si se implementa)"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Áreas",
+            "description": "Endpoints para la gestión de Áreas Generales (ej. Subdirecciones)"
+        },
+        {
+            "name": "Formularios",
+            "description": "Endpoints para obtener datos auxiliares (listas) para llenar formularios"
+        },
+        {
+            "name": "Bienes",
+            "description": "Endpoints para la gestión del inventario (Bienes)"
+        },
+        {
+            "name": "Catálogo CUCOP",
+            "description": "Endpoints para la gestión y búsqueda de claves CUCOP y CAMB"
+        },
+        {
+            "name": "Dashboard",
+            "description": "Endpoints para obtener estadísticas y datos resumidos del sistema"
+        },
+        {
+            "name": "Departamentos",
+            "description": "Endpoints para la gestión de Departamentos dentro de las Áreas"
+        },
+        {
+            "name": "Edificios",
+            "description": "Endpoints para la gestión de los Edificios de la institución"
+        },
+        {
+            "name": "Gestores",
+            "description": "Endpoints para la gestión de Gestores (Usuarios con rol de Gestor)"
+        },
+        {
+            "name": "Resguardantes",
+            "description": "Endpoints para la gestión de los resguardantes"
+        },
+        {
+            "name": "Traspasos",
+            "description": "Endpoints para la gestión de solicitudes de traspaso de bienes"
+        },
+        {
+            "name": "Inventario",
+            "description": "Inventario"
+        }
+    ]
+}

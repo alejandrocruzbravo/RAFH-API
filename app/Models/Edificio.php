@@ -29,4 +29,9 @@ class Edificio extends Model
     {
         return $this->hasMany(Area::class, 'id_edificio');
     }
+    public function oficinas()
+    {
+        // Agregado: 'id_edificio' también existe en la tabla 'oficinas'
+        return $this->hasMany(Oficina::class, 'id_edificio');
+    }
 }

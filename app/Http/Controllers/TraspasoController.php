@@ -5,17 +5,62 @@ namespace App\Http\Controllers;
 use App\Models\Traspaso;
 use Illuminate\Http\Request;
 use App\Events\SolicitudTraspasoCreada;
-
+use App\Events\SolicitudTraspasoActualizada;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\DB;
-use Throwable;                          
 use Illuminate\Support\Facades\Log;
-use App\Events\SolicitudTraspasoActualizada;
 use Illuminate\Validation\Rule;
+use Throwable;
+
+/**
+ * @OA\Tag(
+ * name="Traspasos",
+ * description="Endpoints para la gestión de solicitudes de traspaso de bienes"
+ * )
+ */
 class TraspasoController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Listar Solicitudes de Traspaso
+     *
+     * Obtiene una lista paginada de las solicitudes. Permite filtrar por estado y buscar por nombre del bien o solicitante.
+     *
+     * @OA\Get(
+     * path="/traspasos",
+     * tags={"Traspasos"},
+     * summary="Listar y filtrar traspasos",
+     * @OA\Parameter(
+     * name="estado",
+     * in="query",
+     * description="Filtrar por estado (ej. Pendiente, Aprobado, Rechazado)",
+     * required=false,
+     * @OA\Schema(type="string")
+     * ),
+     * @OA\Parameter(
+     * name="search",
+     * in="query",
+     * description="Buscar por nombre del bien o nombre del usuario solicitante",
+     * required=false,
+     * @OA\Schema(type="string")
+     * ),
+     * @OA\Parameter(
+     * name="page",
+     * in="query",
+     * description="Número de página",
+     * required=false,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Lista paginada de solicitudes",
+     * @OA\JsonContent(
+     * type="object",
+     * @OA\Property(property="data", type="array", @OA\Items(type="object")),
+     * @OA\Property(property="current_page", type="integer"),
+     * @OA\Property(property="total", type="integer")
+     * )
+     * )
+     * )
      */
     public function index(Request $request)
     {
@@ -52,11 +97,31 @@ class TraspasoController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
-     */
-/**
-     * Almacena una nueva solicitud de traspaso y dispara el evento WebSocket.
-     * (Paso 2: Preparar las peticiones POST)
+     * Crear Solicitud de Traspaso
+     *
+     * Crea una nueva solicitud de traspaso y emite un evento WebSocket en tiempo real.
+     *
+     * @OA\Post(
+     * path="/traspasos",
+     * tags={"Traspasos"},
+     * summary="Crear nueva solicitud",
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"traspaso_id_bien", "traspaso_id_usuario_destino"},
+     * @OA\Property(property="traspaso_id_bien", type="integer", description="ID del bien a traspasar", example=1),
+     * @OA\Property(property="traspaso_id_usuario_destino", type="integer", description="ID del usuario receptor", example=5),
+     * @OA\Property(property="traspaso_observaciones", type="string", description="Motivo o detalles", example="Cambio de oficina")
+     * )
+     * ),
+     * @OA\Response(
+     * response=201,
+     * description="Solicitud creada exitosamente",
+     * @OA\JsonContent(type="object")
+     * ),
+     * @OA\Response(response=422, description="Error de validación"),
+     * @OA\Response(response=500, description="Error del servidor o transacción fallida")
+     * )
      */
     public function store(Request $request)
     {
@@ -105,7 +170,22 @@ class TraspasoController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Ver Detalles de Solicitud
+     *
+     * Muestra la información completa de una solicitud, incluyendo detalles profundos del origen y destino (Resguardante, Depto, Oficina).
+     *
+     * @OA\Get(
+     * path="/traspasos/{id}",
+     * tags={"Traspasos"},
+     * summary="Obtener detalles de una solicitud",
+     * @OA\Parameter(name="id", in="path", required=true, description="ID del traspaso", @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Datos del traspaso con relaciones",
+     * @OA\JsonContent(type="object")
+     * ),
+     * @OA\Response(response=404, description="Solicitud no encontrada")
+     * )
      */
     public function show(Traspaso $traspaso)
     {
@@ -141,7 +221,26 @@ class TraspasoController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualizar Estado de Solicitud
+     *
+     * Permite Aprobar o Rechazar una solicitud. Emite un evento WebSocket al cambiar el estado.
+     *
+     * @OA\Put(
+     * path="/traspasos/{id}",
+     * tags={"Traspasos"},
+     * summary="Aprobar o Rechazar solicitud",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"estado"},
+     * @OA\Property(property="estado", type="string", enum={"Aprobado", "Rechazado"}, example="Aprobado")
+     * )
+     * ),
+     * @OA\Response(response=200, description="Estado actualizado"),
+     * @OA\Response(response=422, description="Error de validación (estado inválido)"),
+     * @OA\Response(response=500, description="Error del servidor")
+     * )
      */
     public function update(Request $request, Traspaso $traspaso)
     {
@@ -193,7 +292,15 @@ class TraspasoController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Eliminar Solicitud
+     *
+     * @OA\Delete(
+     * path="/traspasos/{id}",
+     * tags={"Traspasos"},
+     * summary="Eliminar solicitud (No implementado)",
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(response=200, description="Operación exitosa (si se implementa)")
+     * )
      */
     public function destroy(Traspaso $traspaso)
     {

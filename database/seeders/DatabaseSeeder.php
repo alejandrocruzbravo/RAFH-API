@@ -23,8 +23,10 @@ class DatabaseSeeder extends Seeder
             AlmacenSeeder::class,
             EdificioSeeder::class,
             OrganigramaSeeder::class,
+            CatalogoResguardante::class,
             Camba_cucopSeeder::class,
-            CucopClaveSeeder::class
+            CucopClaveSeeder::class,
+            CatalogoSYSINVseeder::class,
         ]);
     }
 }
