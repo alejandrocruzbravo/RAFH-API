@@ -34,15 +34,15 @@ class Rol extends Model
     /**
      * Obtiene los permisos asociados a este rol.
      */
-    public function permisos()
-    {
-        // Relación muchos a muchos (basado en tu diagrama)
-        // Modelo, tabla_pivote, fk_propia, fk_relacionada
-        return $this->belongsToMany(
-            Permiso::class,      // Asumiendo que el modelo se llama 'Permiso'
-            'roles_permisos',   // Tabla pivote
-            'id_rol',           // Clave foránea de Rol en la pivote
-            'id_permiso'        // Clave foránea de Permiso en la pivote
-        );
-    }
+    // public function permisos()
+    // {
+    //     // Relación muchos a muchos (basado en tu diagrama)
+    //     // Modelo, tabla_pivote, fk_propia, fk_relacionada
+    //     return $this->belongsToMany(
+    //         Permiso::class,      // Asumiendo que el modelo se llama 'Permiso'
+    //         'roles_permisos',   // Tabla pivote
+    //         'id_rol',           // Clave foránea de Rol en la pivote
+    //         'id_permiso'        // Clave foránea de Permiso en la pivote
+    //     );
+    // }
 }

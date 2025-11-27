@@ -20,11 +20,11 @@ class EdificioSeeder extends Seeder
                 'EDIFICIO A', 'EDIFICIO B', 'EDIFICIO C', 'EDIFICIO D',
                 'EDIFICIO E', 'EDIFICIO F', 'EDIFICIO G', 'EDIFICIO H',
                 'EDIFICIO I', 'EDIFICIO J', 'EDIFICIO K', 'EDIFICIO L',
-                'EDIFICIO M', 'EDIFICIO M´', 'EDIFICIO N', 'EDIFICIO O',
+                'EDIFICIO M', 'EDIFICIO M', 'EDIFICIO N', 'EDIFICIO O',
                 'EDIFICIO P', 'EDIFICIO Q', 'EDIFICIO R', 'EDIFICIO S',
-                'EDIFICIO T', 'EDIFICIO U', 'EDIFICO U´', 'EDIFICIO V',
+                'EDIFICIO T', 'EDIFICIO U', 'EDIFICO U', 'EDIFICIO V',
                 'EDIFICIO W', 'EDIFICIO X', 'EDIFICIO Y', 'EDIFICIO Z',
-                'EDIFICIO Z´', 'EDIFICIO AA', 'EDIFICIO AB', 'EDIFICIO AC',
+                'EDIFICIO Z', 'EDIFICIO AA', 'EDIFICIO AB', 'EDIFICIO AC',
                 'DOMO DEPORTIVO (AD)',
             ];
 
