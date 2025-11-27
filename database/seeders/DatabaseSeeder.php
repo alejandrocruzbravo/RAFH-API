@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             Roles_PermisosSeeder::class,
             UsuarioSeeder::class,
             DepartamentosSeeder::class,
-            CatalogoResguardante::class,
             EdificioSeeder::class,
             OrganigramaSeeder::class,
             CatalogoResguardante::class,
