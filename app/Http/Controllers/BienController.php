@@ -6,11 +6,13 @@ use App\Models\Bien;
 use App\Models\Oficina;
 use App\Models\MovimientoBien;
 use App\Events\BienEstadoActualizado;
+use App\Events\NuevoMovimientoRegistrado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 use Throwable;
 
 /**
@@ -363,14 +365,28 @@ class BienController extends Controller
         // 1. Detectamos la intención del usuario
         // Si no envían 'accion', asumimos que es una edición normal.
         $accion = $request->input('accion', 'editar_info');
+        $user = $request->user();
 
         // 2. Usamos match (PHP 8) para dirigir el tráfico
         return match ($accion) {
             'baja'   => $this->procesarBaja($request, $biene),
-            'mover'  => $this->procesarMovimiento($request, $biene),
+            'mover'     => $this->determinarTipoMovimiento($request, $biene, $user),
             'reactivar' => $this->procesarReactivacion($request, $biene),
+            'regresar'  => $this->procesarRegresoResguardante($request, $biene),
             default  => $this->procesarEdicionNormal($request, $biene),
         };
+        
+    }
+    protected function determinarTipoMovimiento($request, $bien, $user)
+    {
+        // Si es Administrador, usa la lógica que YA tenías (cambio de dueño)
+        // Ajusta esta condición según cómo validas tus roles (ej: $user->hasRole('Administrador'))
+        if ($user->rol && $user->rol->nombre === 'Administrador') {
+            return $this->procesarMovimiento($request, $bien);
+        }
+
+        // Si NO es admin (es Resguardante), usa la nueva lógica (cambio físico/tránsito)
+        return $this->procesarMovimientoResguardante($request, $bien);
     }
 
 
@@ -420,6 +436,72 @@ class BienController extends Controller
 
         return response()->json([
             'message' => 'Bien reubicado correctamente y ubicación física actualizada.', 
+            'data' => $biene
+        ]);
+    }
+    protected function procesarMovimientoResguardante(Request $request, Bien $biene)
+    {
+        // 1. Validación (Igual que en admin, necesitamos saber a dónde va)
+        $datos = $request->validate([
+            'nuevo_id_oficina' => 'required|exists:oficinas,id',
+        ]);
+
+        // Opcional: Validar que el bien realmente pertenezca a este resguardante
+        // para evitar que muevan cosas que no tienen asignadas.
+        $user = $request->user();
+        // Asumiendo que $biene->id_resguardante se relaciona con el usuario:
+        if ($user->resguardante && $biene->id_resguardante !== $user->resguardante->id) {
+            return response()->json(['message' => 'No tienes permiso para mover este bien.'], 403);
+        }
+
+        // Obtener datos necesarios para el historial
+        // Necesitamos saber a qué departamento pertenece la oficina destino
+        $nuevaOficina = Oficina::findOrFail($datos['nuevo_id_oficina']);
+
+        //Crear el Registro en la tabla movimientos_bien
+        $nuevoMovimiento = MovimientoBien::create([
+            'movimiento_id_bien' => $biene->id,
+            'movimiento_id_dep'  => $nuevaOficina->id_departamento, // Asumiendo que Oficina tiene esta col
+            'movimiento_fecha'   => Carbon::now(),
+            'movimiento_tipo'    => 'MOVIMIENTO FÍSICO', // O el código que uses
+            'movimiento_cantidad'=> 1,
+            'movimiento_id_usuario_origen' => $user->id,
+            // Destino y Autorizado pueden ser nulos o según tu lógica de negocio
+            'movimiento_id_usuario_destino' => $user->id, 
+            'movimiento_id_usuario_autorizado' => $user->id,
+            'movimiento_observaciones' => 'Movimiento físico realizado por resguardante (En tránsito).',
+        ]);
+        // Actualización: Solo ubicación física y estado
+        $biene->update([
+            'bien_ubicacion_actual' => $datos['nuevo_id_oficina'],
+            'bien_estado' => 'En tránsito' 
+        ]);
+
+        broadcast(new NuevoMovimientoRegistrado($nuevoMovimiento))->toOthers();
+
+    
+        return response()->json([
+            'message' => 'Movimiento registrado. El bien ahora está en tránsito a la nueva ubicación física.',
+            'data' => $biene
+        ]);
+    }
+    protected function procesarRegresoResguardante(Request $request, Bien $biene)
+    {
+        // Validamos que el bien esté realmente en tránsito (opcional, pero recomendado)
+        if ($biene->bien_estado !== 'En tránsito') {
+            return response()->json(['message' => 'El bien no está en tránsito.'], 400);
+        }
+
+        // ACTUALIZACIÓN:
+        // 1. La ubicación física vuelve a ser la oficina de origen (id_oficina)
+        // 2. El estado pasa a 'Activo'
+        $biene->update([
+            'bien_ubicacion_actual' => $biene->id_oficina, 
+            'bien_estado' => 'Activo'
+        ]);
+
+        return response()->json([
+            'message' => 'El bien ha regresado a su ubicación original.',
             'data' => $biene
         ]);
     }
@@ -821,29 +903,29 @@ class BienController extends Controller
     
     public function subirFoto(Request $request, $id)
     {
-    $request->validate([
-        'imagen' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Máx 2MB
-    ]);
+        $request->validate([
+            'imagen' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Máx 2MB
+        ]);
 
-    $bien = Bien::findOrFail($id);
+        $bien = Bien::findOrFail($id);
 
-    if ($request->hasFile('imagen')) {
-        // 1. Si ya tenía foto, borrarla (opcional, buena práctica)
-        if ($bien->bien_foto && Storage::disk('public')->exists($bien->bien_foto)) {
-            Storage::disk('public')->delete($bien->bien_foto);
+        if ($request->hasFile('imagen')) {
+            // 1. Si ya tenía foto, borrarla (opcional, buena práctica)
+            if ($bien->bien_foto && Storage::disk('public')->exists($bien->bien_foto)) {
+                Storage::disk('public')->delete($bien->bien_foto);
+            }
+
+            // 2. Guardar nueva foto en carpeta 'bienes' dentro de 'public'
+            $path = $request->file('imagen')->store('bienes', 'public');
+
+            // 3. Actualizar BD
+            $bien->bien_foto = $path;
+            $bien->save();
         }
 
-        // 2. Guardar nueva foto en carpeta 'bienes' dentro de 'public'
-        $path = $request->file('imagen')->store('bienes', 'public');
-
-        // 3. Actualizar BD
-        $bien->bien_foto = $path;
-        $bien->save();
+        return response()->json([
+            'message' => 'Imagen actualizada',
+            'foto_url' => $bien->foto_url // Usamos el accessor
+        ]);
     }
-
-    return response()->json([
-        'message' => 'Imagen actualizada',
-        'foto_url' => $bien->foto_url // Usamos el accessor
-    ]);
-}
 }

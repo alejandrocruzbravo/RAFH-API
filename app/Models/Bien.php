@@ -136,7 +136,7 @@ class Bien extends Model
 
     public function ubicacionActual()
     {
-        return $this->belongsTo(Oficina::class, 'bien_ubicacion_actual');
+        return $this->belongsTo(Oficina::class, 'bien_ubicacion_actual','id');
     }
 
     public function getFotoUrlAttribute()

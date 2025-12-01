@@ -37,14 +37,20 @@ use Illuminate\Support\Facades\Broadcast;
 
 // Middleware global para limpiar tokens expirados en todas las rutas API
 Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(function () {
-    
     // Endpoints públicas para autenticación
     Route::post('/login', [AuthController::class, 'login']);
 
+    Route::middleware(['auth:sanctum'])->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);           // Cierre de sesión
+        Route::get('/mis-bienes', [ResguardanteController::class, 'misBienes']);
+        Route::get('areas/{area}/structure', [AreaController::class, 'getStructure'])->name('areas.structure'); // Estructura jerarquica de área
+        Route::get('/areas', [AreaController::class, 'index']);
+        Route::get('/resguardantes/search', [ResguardanteController::class, 'search']);
+        Route::put('/bienes/{biene}', [BienController::class, 'update']);
+    });
+
     // Rutas protegidas que requieren un token válido
     Route::middleware(['auth:sanctum','role:Administrador'])->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);          // Cierre de sesión
-        Route::get('/dashboard', [DashboardController::class, 'index']);
         /**
          * Ruta de recursos
         */
@@ -54,14 +60,14 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('formularios/oficinas', OficinaFormController::class)->name('formularios.oficinas'); //Formulario de registro de oficinas
         Route::get('formularios/roles', RolFormController::class)->name('formularios.roles'); // Formulario de roles
         Route::get('formularios/resguardantes', ResguardanteFormController::class)->name('formularios.resguardantes'); // Formulario de resguardantes
-        Route::get('areas/{area}/structure', [AreaController::class, 'getStructure'])->name('areas.structure'); // Estructura jerarquica de área
+        //Route::get('areas/{area}/structure', [AreaController::class, 'getStructure'])->name('areas.structure'); // Estructura jerarquica de área
         Route::get('oficinas/{oficina}/bienes', [OficinaController::class, 'getBienes'])->name('oficinas.bienes'); // Bienes por oficina
         Route::get('catalogo-cucop', [CatalogoCucopController::class, 'index'])->name('catalogo.index'); // Listar catálogo CUCOP
         Route::get('/bienes/bajas', [BienController::class, 'bajas']);                 // Listar bienes dados de baja    
         Route::get('/bienes/buscar-codigo/{codigo}', [BienController::class, 'buscarPorCodigo']); // Buscar bien por código
         Route::get('/resguardantes/{id}/bienes', [ResguardanteController::class, 'bienesAsignados']); // Bienes asignados a resguardante
         Route::get('/configuracion-inventario', [ConfiguracionInventarioController::class, 'show']); // Obtener configuración de inventario
-        Route::get('/oficinas/{id}/resguardantes', [ResguardanteController::class, 'indexByOficina']); // Resguardantes por oficina
+        Route::get('/oficinas/{id}/resguardantes', [ResguardanteController::class, 'indexByOficina']); //
 
         Route::post('/configuracion-inventario', [ConfiguracionInventarioController::class, 'store']);
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
@@ -69,8 +75,8 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::post('/inventario/levantamiento', [BienController::class, 'procesarLevantamiento']);
         Route::post('/bienes/{id}/foto', [BienController::class, 'subirFoto']);
 
-        Route::apiResource('areas', AreaController::class);
-        Route::apiResource('bienes', BienController::class);
+        Route::apiResource('areas', AreaController::class)->except(['index']);
+        Route::apiResource('bienes', BienController::class)->except(['update']);
         Route::apiResource('resguardantes', ResguardanteController::class);
         Route::apiResource('departamentos', DepartamentoController::class);
         Route::apiResource('edificios', EdificioController::class);
@@ -78,10 +84,9 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::apiResource('gestores', GestorController::class);
         Route::apiResource('traspasos', TraspasoController::class);
         Route::apiResource('catalogo-camb-cucop', CatalogoCucopController::class)->parameters(['catalogo-camb-cucop' => 'catalogo']);
-        Route::apiResource('resguardos', ResguardoController::class);
-
-        
+        Route::apiResource('resguardos', ResguardoController::class);  
     });
+
     Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 });

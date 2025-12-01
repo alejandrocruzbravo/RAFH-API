@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Resguardante;
 use App\Models\Usuario;
 use App\Models\Oficina;
+use App\Models\Bien;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException; // Para la excepción
 use Illuminate\Support\Facades\DB;
@@ -233,7 +234,7 @@ class ResguardanteController extends Controller
             'usuario_correo' => [
                 'required', 'email', 'max:255',
                 'unique:usuarios,usuario_correo',  // Único en la tabla usuarios
-                'unique:resguardantes,res_correo'  // Único en la tabla resguardantes
+                Rule::unique('resguardantes', 'res_correo')->ignore($resguardante->id),  // Único en la tabla resguardantes excluyendo este resguardante
             ],
         ]);
         // 3. Lógica de Rol por Defecto (sigue igual)
@@ -271,8 +272,7 @@ class ResguardanteController extends Controller
 
     public function bienesAsignados(Request $request , $id)
     {
-        // Inicia la consulta sobre los bienes que tienen este id_resguardante  
-        $query = \App\Models\Bien::where('id_resguardante', $id);
+        $query = Bien::where('id_resguardante', $id);
 
         // Filtro de búsqueda (si el usuario escribe en la nueva barra)
         if ($request->filled('search')) {
@@ -283,7 +283,9 @@ class ResguardanteController extends Controller
                   ->orWhere('bien_serie', 'like', "%{$term}%");
             });
         }
-
+        if ($request->has('estado')) {
+            $query->where('estado', $request->input('estado'));
+        }
         // Paginación de 15 registros como solicitaste
         $bienes = $query->paginate(15);
 
@@ -292,17 +294,80 @@ class ResguardanteController extends Controller
 
     public function indexByOficina($oficinaId)
     {
-    // Opcional: Verificar que la oficina exista primero
-    if (!Oficina::where('id', $oficinaId)->exists()) {
-        return response()->json(['message' => 'Oficina no encontrada'], 404);
+        // Opcional: Verificar que la oficina exista primero
+        if (!Oficina::where('id', $oficinaId)->exists()) {
+            return response()->json(['message' => 'Oficina no encontrada'], 404);
+        }
+
+        // Obtenemos los resguardantes de esa oficina
+        $resguardantes = Resguardante::where('id_oficina', $oficinaId)
+            ->orderBy('res_apellidos', 'asc') // Orden alfabético es útil
+            ->get();
+
+        return response()->json($resguardantes);
     }
+    public function misBienes(Request $request)
+    {
+        $user = $request->user();
 
-    // Obtenemos los resguardantes de esa oficina
-    $resguardantes = Resguardante::where('id_oficina', $oficinaId)
-        ->orderBy('res_apellidos', 'asc') // Orden alfabético es útil
-        ->get();
+        // 1. Verificamos "a la mala" si el usuario tiene un resguardante asociado
+        // Usamos la relación que ya tienes en tu modelo Usuario
+        if (!$user->resguardante) {
+            return response()->json(['message' => 'Tu usuario no tiene perfil de resguardante asignado.'], 403);
+        }
 
-    return response()->json($resguardantes);
-}
+        // 2. Obtenemos SU id automáticamente
+        $miResguardanteId = $user->resguardante->id;
+
+        // 3. Hacemos la consulta directa (copiada de tu lógica anterior)
+        $query = Bien::with('ubicacionActual')
+             ->where('id_resguardante', $miResguardanteId);
+
+        // Filtros (Search)
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('nombre', 'ILIKE', "%{$search}%")
+                ->orWhere('numero_serie', 'ILIKE', "%{$search}%");
+            });
+        }
+        
+        // Filtros extra (Estado/Categoria)
+        if ($request->has('estado')) {
+            $query->where('estado', $request->input('estado'));
+        }
+
+        return response()->json($query->paginate(15));
+    }
+    public function search(Request $request)
+    {
+        $queryText = $request->input('query');
+
+        if (!$queryText || strlen($queryText) < 3) {
+            return response()->json([]);
+        }
+
+        // Buscamos resguardantes donde su USUARIO asociado coincida con el nombre o correo
+        $resguardantes = Resguardante::whereHas('usuario', function($q) use ($queryText) {
+                $q->where('usuario_nombre', 'ILIKE', "%{$queryText}%")
+                ->orWhere('usuario_correo', 'ILIKE', "%{$queryText}%");
+            })
+            ->with('usuario') // Traemos los datos del usuario para mostrar nombre/correo
+            ->limit(5)        // Limitamos a 5 para no saturar
+            ->get();
+
+        // Mapeamos para enviar solo lo necesario al front
+        $data = $resguardantes->map(function($res) {
+            return [
+                'id' => $res->id, // ID del resguardante (importante para el traspaso)
+                'nombre' => $res->usuario->usuario_nombre,
+                'correo' => $res->usuario->usuario_correo,
+                'cargo'  => $res->res_cargo ?? 'Sin cargo definido', // Ajusta según tu columna real
+                'iniciales' => substr($res->usuario->usuario_nombre, 0, 2)
+            ];
+        });
+
+        return response()->json($data);
+    }
 
 }
