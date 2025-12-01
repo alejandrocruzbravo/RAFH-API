@@ -13,15 +13,10 @@ return new class extends Migration
     {
         Schema::create('catalogo_camb_cucop', function (Blueprint $table) {
             $table->id();
-            $table->string('tipo');
             $table->integer('clave_cucop');
             $table->string('partida_especifica');
-            $table->string('clave_cucop_plus');
             $table->text('descripcion');
-            $table->string('nivel');
-            $table->string('camb');
-            $table->string('unidad_medida');
-            $table->string('tipo_contratacion');            
+            $table->string('camb');      
             $table->timestamps();
         });
     }

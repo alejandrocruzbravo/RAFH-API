@@ -23,10 +23,12 @@ use App\Http\Controllers\GestorController;
 use App\Http\Controllers\RolFormController;
 use App\Http\Controllers\ResguardanteFormController;
 use App\Http\Controllers\TraspasoController;
-
-use App\Http\Controllers\QrGenerator;
 use App\Http\Controllers\CatalogoCucopController;
 use App\Http\Controllers\ResguardoController;
+
+//Controladores de HACKATON
+use App\Http\Controllers\ConfiguracionInventarioController;
+use Illuminate\Support\Facades\Broadcast;
 /*
 |--------------------------------------------------------------------------
 | Rutas de API
@@ -56,9 +58,12 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('oficinas/{oficina}/bienes', [OficinaController::class, 'getBienes'])->name('oficinas.bienes'); // Bienes por oficina
         Route::get('catalogo-cucop', [CatalogoCucopController::class, 'index'])->name('catalogo.index'); // Listar catálogo CUCOP
         Route::get('/bienes/bajas', [BienController::class, 'bajas']);                 // Listar bienes dados de baja    
-        Route::get('/bienes/buscar-codigo/{codigo}', [BienController::class, 'buscarPorCodigo']);
-        Route::get('/resguardantes/{id}/bienes', [ResguardanteController::class, 'bienesAsignados']);
-        
+        Route::get('/bienes/buscar-codigo/{codigo}', [BienController::class, 'buscarPorCodigo']); // Buscar bien por código
+        Route::get('/resguardantes/{id}/bienes', [ResguardanteController::class, 'bienesAsignados']); // Bienes asignados a resguardante
+        Route::get('/configuracion-inventario', [ConfiguracionInventarioController::class, 'show']); // Obtener configuración de inventario
+        Route::get('/oficinas/{id}/resguardantes', [ResguardanteController::class, 'indexByOficina']); // Resguardantes por oficina
+
+        Route::post('/configuracion-inventario', [ConfiguracionInventarioController::class, 'store']);
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
         Route::post('inventario/comparar', [BienController::class, 'compararInventario']);
         Route::post('/inventario/levantamiento', [BienController::class, 'procesarLevantamiento']);
@@ -75,8 +80,8 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::apiResource('catalogo-camb-cucop', CatalogoCucopController::class)->parameters(['catalogo-camb-cucop' => 'catalogo']);
         Route::apiResource('resguardos', ResguardoController::class);
 
-
+        
     });
-    
+    Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 });

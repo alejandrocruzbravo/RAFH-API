@@ -113,7 +113,7 @@ class DashboardController extends Controller
         $statOficinas = Oficina::count();
 
         // --- Widget "Último bien registrado" ---
-        $ultimoRegistro = MovimientoBien::where('movimiento_tipo', 'Registro')
+        $ultimoRegistro = MovimientoBien::where('movimiento_tipo', 'ALTA')
             ->with('bien:id,bien_descripcion')
             ->latest('movimiento_fecha')
             ->first();
@@ -126,14 +126,14 @@ class DashboardController extends Controller
         // --- Widget "Última transferencia" ---
         $ultimaTrans = Traspaso::where('traspaso_estado', 'Completado')
             ->with([
-                'bien:id,bien_nombre',
+                'bien:id,bien_descripcion',
                 'usuarioOrigen:id,usuario_nombre'
             ])
             ->latest('traspaso_fecha_solicitud')
             ->first();
 
         $ultimaTransferenciaFiltrada = $ultimaTrans ? [
-            'bien_nombre' => $ultimaTrans->bien->bien_nombre ?? 'N/A',
+            'bien_nombre' => $ultimaTrans->bien->bien_descripcion ?? 'N/A',
             'realizada_por' => $ultimaTrans->usuarioOrigen->usuario_nombre ?? 'N/A',
         ] : null;
 
@@ -151,7 +151,7 @@ class DashboardController extends Controller
         if ($ultimaSolicitud) {
             $solicitudWidget = [
                 'id_traspaso' => $ultimaSolicitud->id,
-                'bien_nombre' => $ultimaSolicitud->bien->bien_nombre ?? 'N/A',
+                'bien_nombre' => $ultimaSolicitud->bien->bien_descripcion ?? 'N/A',
                 'emisor' => $ultimaSolicitud->usuarioOrigen->usuario_nombre ?? 'N/A',
                 'receptor' => $ultimaSolicitud->usuarioDestino->usuario_nombre ?? 'N/A',
             ];
@@ -159,7 +159,7 @@ class DashboardController extends Controller
 
         // --- Widget "Últimos Movimientos" ---
         $ultimosMovimientos = MovimientoBien::with([
-                'bien:id,bien_nombre', 
+                'bien:id,bien_descripcion', 
                 'usuarioAutorizado:id,usuario_nombre', 
                 'usuarioDestino:id,usuario_nombre',
                 'departamento:id,dep_nombre'
@@ -170,7 +170,7 @@ class DashboardController extends Controller
             ->map(function ($movimiento) {
                 return [
                     'tipo' => $movimiento->movimiento_tipo,
-                    'bien_involucrado' => $movimiento->bien->bien_nombre ?? 'N/A',
+                    'bien_involucrado' => $movimiento->bien->bien_descripcion ?? 'N/A',
                     'gestor_encargado' => $movimiento->usuarioAutorizado->usuario_nombre ?? 'N/A',
                     'resguardante_responsable' => $movimiento->usuarioDestino->usuario_nombre ?? 'N/A',
                     'area' => $movimiento->departamento->dep_nombre ?? 'N/A',

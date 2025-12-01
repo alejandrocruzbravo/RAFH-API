@@ -18,14 +18,9 @@ class CatalogoCambCucop extends Model
      * Los atributos que se pueden asignar masivamente.
      */
     protected $fillable = [
-        'tipo',
         'clave_cucop',
         'partida_especifica',
-        'clave_cucop_plus',
         'descripcion',
-        'nivel',
         'camb',
-        'unidad_medida',
-        'tipo_contratacion',
     ];
 }

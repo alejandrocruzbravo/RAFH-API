@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Resguardante;
 use App\Models\Usuario;
+use App\Models\Oficina;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException; // Para la excepción
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ use Throwable;
  */
 class ResguardanteController extends Controller
 {
-/**
+    /**
      * Listar Resguardantes
      *
      * Obtiene una lista paginada de todos los resguardantes registrados.
@@ -165,10 +166,10 @@ class ResguardanteController extends Controller
                     'message' => $e->getMessage()
                 ], 500);
             }
-    
-            return response()->json($resguardante->load('departamento.area', 'usuario.rol', 'oficina.edificio'), 200);
+        }else{
+            // Solo actualizar el Resguardante si el correo no cambió o no hay usuario asociado
+            $resguardante->update($validatedData);
         }
-
         return response()->json($resguardante->load('departamento.area', 'usuario.rol', 'oficina.edificio'), 200);
     }
 /**
@@ -288,5 +289,20 @@ class ResguardanteController extends Controller
 
         return response()->json($bienes);
     }
+
+    public function indexByOficina($oficinaId)
+    {
+    // Opcional: Verificar que la oficina exista primero
+    if (!Oficina::where('id', $oficinaId)->exists()) {
+        return response()->json(['message' => 'Oficina no encontrada'], 404);
+    }
+
+    // Obtenemos los resguardantes de esa oficina
+    $resguardantes = Resguardante::where('id_oficina', $oficinaId)
+        ->orderBy('res_apellidos', 'asc') // Orden alfabético es útil
+        ->get();
+
+    return response()->json($resguardantes);
+}
 
 }

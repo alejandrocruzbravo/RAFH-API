@@ -74,11 +74,54 @@ class Bien extends Model
         return $this->belongsTo(Oficina::class, 'id_oficina');
     }
     
-    static public function generarCodigo($serie,$clave = 0,$y=null) {
-        $string = ($y !== null) ? 'I'.$clave.'-'.$y->format('y').'-23-'.$serie : 'I'.$clave.'-23-'.$serie;
-        return strtoupper($string);
-    }
+/**
+     * Genera el código único del bien físico.
+     * Recibe la clave del catálogo (Ej: "I51101-0001-25-23")
+     * Retorna la clave del bien (Ej: "I51101-0001-25-23-00001")
+     */
+    static public function generarCodigo($cambBase) 
+    {
+        // 1. Obtener el Separador de la Configuración (Para mantener coherencia)
+        // Si no quieres consultar la BD de config cada vez, puedes hardcodear '-' 
+        // pero esto es más robusto:
+        $configModel = ConfiguracionInventario::first();
+        $separator = $configModel->configuracion_json['structure']['separator'] ?? '-';
+        if ($separator === 'Ninguno') $separator = '';
 
+        // 2. Buscar el último bien que empiece con esta base
+        // Buscamos: "I51101-0001-25-23" + Separador + "%"
+        $prefixBusqueda = $cambBase . $separator;
+
+        $ultimoBien = self::where('bien_codigo', 'like', $prefixBusqueda . '%')
+            // Ordenamos por longitud primero para que "10" sea mayor que "2"
+            ->orderByRaw('LENGTH(bien_codigo) DESC') 
+            ->orderBy('bien_codigo', 'desc')
+            ->first();
+
+        $consecutivo = 1;
+
+        if ($ultimoBien) {
+            // 3. Extraer la secuencia numérica final
+            // Ejemplo: Tenemos "I51101...-0005". Quitamos el prefijo y queda "0005".
+            $codigoCompleto = $ultimoBien->bien_codigo;
+            
+            // Reemplazamos la base por vacío para obtener solo el final
+            $soloSecuencia = str_replace($prefixBusqueda, '', $codigoCompleto);
+            
+            if (is_numeric($soloSecuencia)) {
+                $consecutivo = intval($soloSecuencia) + 1;
+            }
+        }
+
+        // 4. Formatear con ceros (Padding)
+        // Usamos 5 dígitos para el inventario físico para aguantar hasta 99,999 items iguales
+        // O puedes leer este valor también de la config si prefieres.
+        $secuenciaStr = str_pad($consecutivo, 5, '0', STR_PAD_LEFT);
+
+        // 5. Retornar Código Final
+        // Ej: "I51101-0001-25-23" + "-" + "00001"
+        return strtoupper($cambBase . $separator . $secuenciaStr);
+    }
 
     public function archivos(){
         return $this->hasMany(ArchivoBien::class);

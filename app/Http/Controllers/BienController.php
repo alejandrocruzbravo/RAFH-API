@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Bien;
 use App\Models\Oficina;
+use App\Models\MovimientoBien;
+use App\Events\BienEstadoActualizado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 /**
@@ -180,16 +183,20 @@ class BienController extends Controller
                                 ->first();
 
             $siguienteSecuenciaNum = $ultimoBien ? (int)$ultimoBien->bien_secuencia + 1 : 1;
-            
-            $componente_anio = substr($anio, -2);
-            $componente_instituto = '23';
+            $movimientoIdDep = null;
+            if (!empty($validatedData['id_oficina'])) {
+                // Buscamos la oficina para sacar su departamento
+                $oficina = Oficina::find($validatedData['id_oficina']);
+                // Del objeto oficina, sacamos solo el ID numérico
+                $movimientoIdDep = $oficina ? $oficina->id_departamento : null;
+            }
 
             for ($i = 0; $i < $cantidad; $i++) {
                 
                 $secuenciaActualNum = $siguienteSecuenciaNum + $i;
                 $componente_secuencia_str = str_pad($secuenciaActualNum, 5, '0', STR_PAD_LEFT);
 
-                $nuevoCodigo = "{$claveCamb}-{$componente_anio}-{$componente_instituto}-{$componente_secuencia_str}";
+                $nuevoCodigo = "{$claveCamb}-{$componente_secuencia_str}";
 
                 $dataParaEsteBien = $baseData;
                 $dataParaEsteBien['bien_codigo'] = $nuevoCodigo;
@@ -198,6 +205,24 @@ class BienController extends Controller
 
                 $bien = Bien::create($dataParaEsteBien);
                 $bienesCreados[] = $bien;
+
+                MovimientoBien::create([
+                    'movimiento_id_bien'        => $bien->id,
+                    
+                    // AQUÍ ESTABA EL ERROR: Antes pasabas el objeto, ahora pasamos el entero
+                    'movimiento_id_dep'         => $movimientoIdDep, 
+                    
+                    'movimiento_fecha'          => now(),
+                    'movimiento_tipo'           => 'ALTA', // O 'Alta' según tu base de datos
+                    'movimiento_id_usuario_origen' => Auth::id(), 
+                    
+                    // OJO: El error también marcaba un '?' en usuario_destino. 
+                    // Si es nullable pon null, si no, pon el mismo usuario.
+                    'movimiento_id_usuario_destino' => Auth::id(), 
+                    
+                    'movimiento_id_usuario_autorizado' => Auth::id(),
+                    'movimiento_observaciones'  => 'Alta inicial de bien por lote o unitario.',
+                ]);
             }
 
             DB::commit();
@@ -251,7 +276,7 @@ class BienController extends Controller
         );
         return $biene;
     }
-/**
+    /**
      * @OA\Put(
      * path="/api/bienes/{id}",
      * summary="Actualizar, Mover, Dar de Baja o Reactivar un Bien",
@@ -782,6 +807,7 @@ class BienController extends Controller
                     $bien->save();
                 }
             });
+            event(new BienEstadoActualizado(null, 'ACTUALIZACION_MASIVA', $idOficinaFisica));
 
             return response()->json(['message' => 'Levantamiento de inventario procesado correctamente.']);
 

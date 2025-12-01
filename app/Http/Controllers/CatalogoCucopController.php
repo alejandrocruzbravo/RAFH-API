@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\CatalogoCambCucop;
+use App\Models\ConfiguracionInventario; // Asegúrate de importar esto
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -109,33 +111,164 @@ class CatalogoCucopController extends Controller
      * @OA\Response(response=500, description="Error del servidor")
      * )
      */
+
+
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'tipo' => 'required|string|max:255',
-            'clave_cucop' => 'required|integer|unique:catalogo_camb_cucop,clave_cucop', // Unique
-            'partida_especifica' => 'nullable|string|max:255',
-            'clave_cucop_plus' => 'nullable|string|max:255',
+        // 1. Validaciones
+        $request->validate([
+            'partida_especifica' => 'required|string|min:3', 
             'descripcion' => 'required|string',
-            'nivel' => 'nullable|string|max:255',
-            'camb' => 'nullable|string|max:255',
-            'unidad_medida' => 'nullable|string|max:255',
-            'tipo_contratacion' => 'nullable|string|max:255',
         ]);
 
-        // Campos constantes por especificación
-        $validatedData['tipo'] = '1';
-        $validatedData['nivel'] = '5';
-        $validatedData['unidad_medida'] = 'pieza';
-        $validatedData['tipo_contratacion'] = 'adquisiciones';
+        return DB::transaction(function () use ($request) {
+            $data = $request->all();
+            
+            // --- 1. LÓGICA CUCOP (Se mantiene igual) ---
+            $prefijoPartida = substr($request->partida_especifica, 0, 3); // "511"
+            
+            $ultimoCucop = CatalogoCambCucop::where('clave_cucop', 'like', $prefijoPartida . '%')
+                ->orderByRaw('CAST(clave_cucop AS INTEGER) DESC')
+                ->lockForUpdate()
+                ->first();
 
-        try {
-            $registro = CatalogoCambCucop::create($validatedData);
-            return response()->json($registro, 201);
-        } catch (Throwable $e) {
-            return response()->json(['error' => 'No se pudo crear el registro.', 'message' => $e->getMessage()], 500);
-        }
+            $secCucop = 1;
+            if ($ultimoCucop) {
+                $claveCompleta = (string)$ultimoCucop->clave_cucop; 
+                $secuenciaActual = intval(substr($claveCompleta, -4)); 
+                $secCucop = $secuenciaActual + 1;
+            }
+            $data['clave_cucop'] = $prefijoPartida . str_pad($secCucop, 4, '0', STR_PAD_LEFT);
+
+
+            // --- 2. LÓGICA CAMB (ROBUSTA SIN SEPARADORES) ---
+            
+            // A. Cargar la configuración de etiquetas
+            // (Asumimos ID 1 o la lógica de tu tenant)
+            $configModel = ConfiguracionInventario::first();
+            $config = $configModel ? $configModel->configuracion_json : [];
+            $structure = $config['structure'] ?? [];
+            $prefixes = $config['prefixes'] ?? [];
+
+            // B. Determinar Variables Base
+            $familia = substr($request->partida_especifica, 0, 3); // "511"
+            
+            // Buscar prefijo configurado (Ej. "MUE" o "I51101")
+            // Nota: Laravel Collections facilita la búsqueda en el array de JSON
+            $foundPrefix = collect($prefixes)->firstWhere('api_code', $familia);
+            $catPrefix = $foundPrefix ? $foundPrefix['prefix'] : 'GEN';
+
+            // C. Calcular la Secuencia de Categoría
+            // Buscamos cuántos existen con este prefijo de categoría para asignar el siguiente número
+            // IMPORTANTE: Buscamos por "contiene el prefijo al inicio" independientemente de los separadores
+            
+            // Para ser precisos, filtramos los que tengan la partida específica en la BD o usamos el prefijo.
+            // Usaremos el prefijo de categoría como identificador de la serie.
+            
+            // Obtenemos el último CAMB que empiece con este prefijo de categoría
+            // Ej: Buscar 'I51101%'
+            $ultimoCamb = CatalogoCambCucop::where('camb', 'like', $catPrefix . '%')
+                ->orderBy('id', 'desc')
+                ->lockForUpdate()
+                ->first();
+
+            $secCamb = 1;
+            
+            // Aquí viene el truco: Como no podemos hacer explode si no hay separador,
+            // necesitamos guardar la secuencia en una columna aparte O extraerla con inteligencia.
+            // Para este caso, extraeremos intentando limpiar el prefijo.
+            
+            if ($ultimoCamb) {
+                // "I5110100012523"
+                $cambAnterior = $ultimoCamb->camb;
+                
+                // Quitamos el prefijo del inicio
+                // "00012523"
+                $resto = substr($cambAnterior, strlen($catPrefix));
+                
+                // Quitamos posibles separadores al inicio del resto
+                $separator = $structure['separator'] ?? '';
+                if ($separator) {
+                    $resto = ltrim($resto, $separator);
+                }
+                
+                // Asumimos que la secuencia está al inicio del resto (0001...)
+                // Tomamos los dígitos de la longitud configurada (ej. 4)
+                $len = $structure['zerosLength'] ?? 4;
+                $posibleSecuencia = substr($resto, 0, $len);
+                
+                if (is_numeric($posibleSecuencia)) {
+                    $secCamb = intval($posibleSecuencia) + 1;
+                }
+            }
+            
+            $secuenciaStr = str_pad($secCamb, $structure['zerosLength'] ?? 4, '0', STR_PAD_LEFT);
+
+            // D. Reconstruir el CAMB Final (Server Side)
+            // Usamos la misma lógica de "piezas" que en el Frontend, pero segura.
+            
+            $p_year = '';
+            if (!empty($structure['includeYear'])) {
+                $yearFormat = $structure['yearFormat'] ?? 'YYYY';
+                $p_year = ($yearFormat === 'YY') ? date('y') : date('Y');
+            }
+            
+            $p_inst = '';
+            if (!empty($structure['includeInstitution'])) {
+                $p_inst = $structure['institutionPrefix'] ?? 'INST';
+            }
+            
+            $sep = $structure['separator'] === 'Ninguno' ? '' : ($structure['separator'] ?? ''); // Si es "Ninguno" en el select del front, pon vacío
+
+            // Armamos el array de partes en orden
+            $parts = [];
+
+            // 1. Inicio (Inst + Cat o Cat + Inst)
+            if (!empty($structure['includeInstitution'])) {
+                $pos = $structure['institutionPosition'] ?? 'start';
+                if ($pos === 'start') {
+                    $parts[] = $p_inst;
+                    $parts[] = $catPrefix;
+                } elseif ($pos === 'middle') {
+                    $parts[] = $catPrefix;
+                    $parts[] = $p_inst;
+                } else {
+                    $parts[] = $catPrefix;
+                }
+            } else {
+                $parts[] = $catPrefix;
+            }
+
+            // 2. Secuencia (Va aquí según tu lógica de negocio)
+            $parts[] = $secuenciaStr;
+
+            // 3. Año
+            if ($p_year) $parts[] = $p_year;
+
+            // 4. Institución al final
+            if (!empty($structure['includeInstitution']) && ($structure['institutionPosition'] ?? '') === 'before_seq') {
+                // Nota: En tu lógica anterior 'before_seq' iba al final. Ajusta si necesario.
+                $parts[] = $p_inst;
+            }
+
+            // 5. UNIR TODO
+            // array_filter quita vacíos por si acaso
+            $data['camb'] = implode($sep, array_filter($parts, fn($v) => $v !== '')); 
+
+            // ----------------------------------------
+
+            $data['tipo'] = 1;
+            $data['nivel'] = 1;
+
+            $catalogo = CatalogoCambCucop::create($data);
+
+            return response()->json([
+                'message' => 'Registro creado. CAMB: ' . $data['camb'],
+                'data' => $catalogo
+            ], 201);
+        });
     }
+
 
     /**
      * Ver Registro
@@ -179,19 +312,14 @@ class CatalogoCucopController extends Controller
     public function update(Request $request, CatalogoCambCucop $catalogo)
     {
         $validatedData = $request->validate([
-            'tipo' => 'required|string|max:255',
             'clave_cucop' => [
                 'required',
                 'integer',
                 Rule::unique('catalogo_camb_cucop', 'clave_cucop')->ignore($catalogo->getKey()),
             ],
-            'partida_especifica' => 'nullable|string|max:255',
-            'clave_cucop_plus' => 'nullable|string|max:255',
             'descripcion' => 'required|string',
-            'nivel' => 'nullable|string|max:255',
             'camb' => 'nullable|string|max:255',
-            'unidad_medida' => 'nullable|string|max:255',
-            'tipo_contratacion' => 'nullable|string|max:255',
+
         ]);
 
         // Forzamos los valores constantes
