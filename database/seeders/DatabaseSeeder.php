@@ -20,13 +20,13 @@ class DatabaseSeeder extends Seeder
             UsuarioSeeder::class,
             DepartamentosSeeder::class,
             CatalogoResguardante::class,
-            AlmacenSeeder::class,
             EdificioSeeder::class,
             OrganigramaSeeder::class,
             CatalogoResguardante::class,
             Camba_cucopSeeder::class,
             CucopClaveSeeder::class,
             CatalogoSYSINVseeder::class,
+            ResguardosSeeder::class,
         ]);
     }
 }

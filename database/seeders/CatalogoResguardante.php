@@ -56,8 +56,8 @@ class CatalogoResguardante extends Seeder
                             'res_correo'  => fake()->unique()->safeEmail(),
                             'res_telefono'=>fake()->numerify('##########'),
                             'res_id_usuario'=>null,
-                            'res_departamento'=>8,
-                            'id_oficina'=>9,
+                            'res_departamento'=>rand(1,4),
+                            'id_oficina'=>null,
                         ];
                     }
                 }
