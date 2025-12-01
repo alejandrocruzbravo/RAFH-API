@@ -29,6 +29,7 @@ class Bien extends Model
         'bien_modelo',
         'bien_serie',
         'bien_descripcion',
+        'bien_foto',
         'bien_caracteristicas',
         'bien_tipo_adquisicion',
         'bien_fecha_alta',
@@ -41,6 +42,7 @@ class Bien extends Model
         'bien_ubicacion_actual'
     ];  
 
+    protected $appends = ['foto_url'];
     /**
      * Obtiene los registros de resguardo (custodia) de este bien.
      */
@@ -92,5 +94,14 @@ class Bien extends Model
     public function ubicacionActual()
     {
         return $this->belongsTo(Oficina::class, 'bien_ubicacion_actual');
+    }
+
+    public function getFotoUrlAttribute()
+    {
+        if ($this->bien_foto) {
+            return asset('storage/' . $this->bien_foto);
+        }
+        // Puedes retornar null o una imagen por defecto
+        return null; 
     }
 }

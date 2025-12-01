@@ -62,6 +62,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
         Route::post('inventario/comparar', [BienController::class, 'compararInventario']);
         Route::post('/inventario/levantamiento', [BienController::class, 'procesarLevantamiento']);
+        Route::post('/bienes/{id}/foto', [BienController::class, 'subirFoto']);
 
         Route::apiResource('areas', AreaController::class);
         Route::apiResource('bienes', BienController::class);

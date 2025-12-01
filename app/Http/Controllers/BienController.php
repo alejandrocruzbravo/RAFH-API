@@ -390,7 +390,7 @@ class BienController extends Controller
             'id_oficina' => $datos['nuevo_id_oficina'],            // Nuevo dueño administrativo
             'bien_ubicacion_actual' => $datos['nuevo_id_oficina'], // Nueva ubicación física
             // Opcional: Si estaba "En tránsito", al llegar a su nueva casa oficial, pasa a Activo
-            'bien_estado' => 'ACTIVO' 
+            'bien_estado' => 'Activo' 
         ]);
 
         return response()->json([
@@ -792,4 +792,32 @@ class BienController extends Controller
             ], 500);
         }
     }
+    
+    public function subirFoto(Request $request, $id)
+    {
+    $request->validate([
+        'imagen' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Máx 2MB
+    ]);
+
+    $bien = Bien::findOrFail($id);
+
+    if ($request->hasFile('imagen')) {
+        // 1. Si ya tenía foto, borrarla (opcional, buena práctica)
+        if ($bien->bien_foto && Storage::disk('public')->exists($bien->bien_foto)) {
+            Storage::disk('public')->delete($bien->bien_foto);
+        }
+
+        // 2. Guardar nueva foto en carpeta 'bienes' dentro de 'public'
+        $path = $request->file('imagen')->store('bienes', 'public');
+
+        // 3. Actualizar BD
+        $bien->bien_foto = $path;
+        $bien->save();
+    }
+
+    return response()->json([
+        'message' => 'Imagen actualizada',
+        'foto_url' => $bien->foto_url // Usamos el accessor
+    ]);
+}
 }

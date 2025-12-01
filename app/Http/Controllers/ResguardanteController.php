@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Resguardante;
 use App\Models\Usuario;
+use App\Models\Oficina;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException; // Para la excepción
 use Illuminate\Support\Facades\DB;
@@ -167,6 +168,9 @@ class ResguardanteController extends Controller
             }
     
             return response()->json($resguardante->load('departamento.area', 'usuario.rol', 'oficina.edificio'), 200);
+        } else {
+            // Si no hay cambio de correo o no hay usuario, solo actualiza el resguardante
+            $resguardante->update($validatedData);
         }
 
         return response()->json($resguardante->load('departamento.area', 'usuario.rol', 'oficina.edificio'), 200);
@@ -288,5 +292,18 @@ class ResguardanteController extends Controller
 
         return response()->json($bienes);
     }
+    public function indexByOficina($oficinaId)
+    {
+        // Opcional: Verificar que la oficina exista primero
+        if (!Oficina::where('id', $oficinaId)->exists()) {
+            return response()->json(['message' => 'Oficina no encontrada'], 404);
+        }
 
+        // Obtenemos los resguardantes de esa oficina
+        $resguardantes = Resguardante::where('id_oficina', $oficinaId)
+            ->orderBy('res_apellidos', 'asc') // Orden alfabético es útil
+            ->get();
+
+        return response()->json($resguardantes);
+    }
 }
