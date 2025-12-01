@@ -19,12 +19,14 @@ class DatabaseSeeder extends Seeder
             Roles_PermisosSeeder::class,
             UsuarioSeeder::class,
             DepartamentosSeeder::class,
+            CatalogoResguardante::class,
             EdificioSeeder::class,
             OrganigramaSeeder::class,
             CatalogoResguardante::class,
             Camba_cucopSeeder::class,
             CucopClaveSeeder::class,
             CatalogoSYSINVseeder::class,
+            ResguardosSeeder::class,
         ]);
     }
 }
