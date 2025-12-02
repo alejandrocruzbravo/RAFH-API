@@ -463,7 +463,7 @@ class BienController extends Controller
             'movimiento_id_bien' => $biene->id,
             'movimiento_id_dep'  => $nuevaOficina->id_departamento, // Asumiendo que Oficina tiene esta col
             'movimiento_fecha'   => Carbon::now(),
-            'movimiento_tipo'    => 'MOVIMIENTO FÍSICO', // O el código que uses
+            'movimiento_tipo'    => 'MOVIMIENTO', // O el código que uses
             'movimiento_cantidad'=> 1,
             'movimiento_id_usuario_origen' => $user->id,
             // Destino y Autorizado pueden ser nulos o según tu lógica de negocio
@@ -623,10 +623,11 @@ class BienController extends Controller
             if ($deleted) {
                 return response()->json(null, 204);
             }
-
             return response()->json(['error' => 'No se pudo eliminar el registro.'], 500);
+
         } catch (QueryException $e) {
-            return response()->json(['error' => 'No se puede eliminar, tiene registros asociados.'], 409);
+            return response()->json(['error' => 'No se puede eliminar, tiene registros asociados.','message' => $e->getMessage()], 409);
+
         } catch (Throwable $e) {
             return response()->json(['error' => 'Error al eliminar el bien.', 'message' => $e->getMessage()], 500);
         }

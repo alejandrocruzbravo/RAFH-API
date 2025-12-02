@@ -34,6 +34,7 @@ return new class extends Migration
             $table->string('bien_provedor');
             $table->string('bien_numero_factura');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

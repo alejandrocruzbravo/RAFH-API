@@ -110,41 +110,45 @@ class OficinaController extends Controller
      */
     public function getBienes(Request $request, Oficina $oficina)
     {
-        // 1. Inicia la consulta en los 'bienes' de ESTA oficina
+        // 1. Inicia la consulta
         $query = $oficina->bienes()->with([
-            // --- AGREGAMOS LA RELACIÓN PARA EL TOOLTIP ---
-            'ubicacionActual:id,nombre', 
-            
-            // Cargamos el último resguardo para saber quién lo tiene
+            'ubicacionActual:id,nombre',
             'resguardos' => function ($q) {
                 $q->latest('resguardo_fecha_asignacion')->limit(1)->with('resguardante:id,res_nombre,res_apellidos');
             }
         ]);
 
-        // 2. (Opcional) Filtrar por estado DENTRO de la oficina
+        // 2. Filtro por estado (Existente)
         if ($request->filled('estado')) {
             $query->where('bien_estado', $request->input('estado'));
         }
 
-        // 3. (Opcional) Buscar DENTRO de la oficina
+        // --- 3. NUEVO FILTRO: SIN RESGUARDO ---
+        // Si el front envía ?sin_resguardo=true, filtramos los que ya tienen dueño
+        if ($request->has('sin_resguardo') && $request->input('sin_resguardo') == 'true') {
+            // En tu lógica, si id_resguardante es NULL, el bien está libre en la oficina
+            $query->whereNull('id_resguardante');
+        }
+
+        // 4. (Opcional) Buscar DENTRO de la oficina (Existente)
         if ($request->filled('search')) {
             $term = $request->input('search');
             $query->where(function($q) use ($term) {
                 $q->where('bien_codigo', 'like', "%{$term}%")
-                  ->orWhere('bien_serie', 'like', "%{$term}%")
-                  ->orWhere('bien_descripcion', 'like', "%{$term}%");
+                ->orWhere('bien_serie', 'like', "%{$term}%")
+                ->orWhere('bien_descripcion', 'like', "%{$term}%");
             });
         }
 
-        // 4. Selecciona las columnas necesarias para la tabla y pagina
+        // 5. Selección y Paginación
         $bienes = $query->select(
-                'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 'bien_caracteristicas',
-                'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina', 'bien_provedor', 
-                'bien_tipo_adquisicion', 'bien_numero_factura', 'bien_valor_monetario',
-                'bien_ubicacion_actual' ,'bien_foto'
-            )
-            ->orderBy('id', 'desc')
-            ->paginate(15);
+            'id', 'bien_codigo', 'bien_descripcion', 'bien_serie', 'bien_caracteristicas',
+            'bien_marca', 'bien_modelo', 'bien_estado', 'id_oficina', 'bien_provedor',
+            'bien_tipo_adquisicion', 'bien_numero_factura', 'bien_valor_monetario',
+            'bien_ubicacion_actual', 'bien_foto', 'id_resguardante' // Agregué id_resguardante por si acaso
+        )
+        ->orderBy('id', 'desc')
+        ->paginate(15);
 
         return $bienes;
     }

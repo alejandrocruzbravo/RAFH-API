@@ -27,7 +27,7 @@ class ResguardoController extends Controller
     }
 
     /**
-     * Lógica para ASIGNAR bienes (Tu código original refactorizado)
+     * Lógica para ASIGNAR bienes
      */
     private function procesarAsignacion(Request $request)
     {

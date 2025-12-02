@@ -124,27 +124,28 @@ class DashboardController extends Controller
         ] : null;
 
         // --- Widget "Última transferencia" ---
-        $ultimaTrans = Traspaso::where('traspaso_estado', 'Completado')
+        $ultimaTrans = Traspaso::where('traspaso_estado', 'Aprobada')
             ->with([
                 'bien:id,bien_descripcion',
-                'usuarioOrigen:id,usuario_nombre'
+                'resguardanteOrigen.usuario:id,usuario_nombre'
             ])
             ->latest('traspaso_fecha_solicitud')
             ->first();
 
         $ultimaTransferenciaFiltrada = $ultimaTrans ? [
             'bien_nombre' => $ultimaTrans->bien->bien_descripcion ?? 'N/A',
-            'realizada_por' => $ultimaTrans->usuarioOrigen->usuario_nombre ?? 'N/A',
+            // Accedemos a resguardanteOrigen -> usuario -> nombre
+            'realizada_por' => $ultimaTrans->resguardanteOrigen->usuario->usuario_nombre ?? 'N/A',
         ] : null;
 
         // --- Widget "Notificaciones" ---
         $ultimaSolicitud = Traspaso::where('traspaso_estado', 'Pendiente')
             ->with([
-                'bien:id,bien_nombre',
-                'usuarioOrigen:id,usuario_nombre',
-                'usuarioDestino:id,usuario_nombre'
+                'bien:id,bien_descripcion', // O bien_nombre si así se llama en tu BD
+                'resguardanteOrigen.usuario:id,usuario_nombre',
+                'resguardanteDestino.usuario:id,usuario_nombre'
             ])
-            ->latest('traspaso_fecha_solicitud') 
+            ->latest('traspaso_fecha_solicitud')
             ->first();
 
         $solicitudWidget = null;
@@ -152,8 +153,9 @@ class DashboardController extends Controller
             $solicitudWidget = [
                 'id_traspaso' => $ultimaSolicitud->id,
                 'bien_nombre' => $ultimaSolicitud->bien->bien_descripcion ?? 'N/A',
-                'emisor' => $ultimaSolicitud->usuarioOrigen->usuario_nombre ?? 'N/A',
-                'receptor' => $ultimaSolicitud->usuarioDestino->usuario_nombre ?? 'N/A',
+                // Acceso seguro a relaciones profundas
+                'emisor'      => $ultimaSolicitud->resguardanteOrigen->usuario->usuario_nombre ?? 'Desconocido',
+                'receptor'    => $ultimaSolicitud->resguardanteDestino->usuario->usuario_nombre ?? 'Desconocido',
             ];
         }
 

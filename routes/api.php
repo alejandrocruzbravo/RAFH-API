@@ -26,6 +26,8 @@ use App\Http\Controllers\TraspasoController;
 use App\Http\Controllers\CatalogoCucopController;
 use App\Http\Controllers\ResguardoController;
 
+use App\Http\Controllers\MovimientoBienController;
+
 //Controladores de HACKATON
 use App\Http\Controllers\ConfiguracionInventarioController;
 use Illuminate\Support\Facades\Broadcast;
@@ -47,6 +49,11 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('/areas', [AreaController::class, 'index']);
         Route::get('/resguardantes/search', [ResguardanteController::class, 'search']);
         Route::put('/bienes/{biene}', [BienController::class, 'update']);
+        Route::get('/mis-movimientos', [ResguardanteController::class, 'misMovimientos']);
+        Route::post('/traspasos', [TraspasoController::class, 'store']);
+        Route::get('/mis-transferencias', [ResguardanteController::class, 'misTransferencias']);
+        Route::get('/resguardante/dashboard', [ResguardanteController::class, 'dashboard']);
+        
     });
 
     // Rutas protegidas que requieren un token válido
@@ -68,6 +75,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('/resguardantes/{id}/bienes', [ResguardanteController::class, 'bienesAsignados']); // Bienes asignados a resguardante
         Route::get('/configuracion-inventario', [ConfiguracionInventarioController::class, 'show']); // Obtener configuración de inventario
         Route::get('/oficinas/{id}/resguardantes', [ResguardanteController::class, 'indexByOficina']); //
+        Route::get('/admin/movimientos', [MovimientoBienController::class, 'index']);
 
         Route::post('/configuracion-inventario', [ConfiguracionInventarioController::class, 'store']);
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
@@ -82,7 +90,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::apiResource('edificios', EdificioController::class);
         Route::apiResource('oficinas', OficinaController::class);
         Route::apiResource('gestores', GestorController::class);
-        Route::apiResource('traspasos', TraspasoController::class);
+        Route::apiResource('traspasos', TraspasoController::class)->except(['store']);
         Route::apiResource('catalogo-camb-cucop', CatalogoCucopController::class)->parameters(['catalogo-camb-cucop' => 'catalogo']);
         Route::apiResource('resguardos', ResguardoController::class);  
     });

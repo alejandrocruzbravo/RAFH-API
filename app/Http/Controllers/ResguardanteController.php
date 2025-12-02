@@ -6,6 +6,8 @@ use App\Models\Resguardante;
 use App\Models\Usuario;
 use App\Models\Oficina;
 use App\Models\Bien;
+use App\Models\MovimientoBien;
+use App\Models\Traspaso;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException; // Para la excepción
 use Illuminate\Support\Facades\DB;
@@ -320,9 +322,8 @@ class ResguardanteController extends Controller
         $miResguardanteId = $user->resguardante->id;
 
         // 3. Hacemos la consulta directa (copiada de tu lógica anterior)
-        $query = Bien::with('ubicacionActual')
-             ->where('id_resguardante', $miResguardanteId);
-
+        $query = Bien::with(['ubicacionActual', 'traspasoPendiente']) 
+                ->where('id_resguardante', $miResguardanteId);
         // Filtros (Search)
         if ($request->has('search')) {
             $search = $request->input('search');
@@ -339,35 +340,151 @@ class ResguardanteController extends Controller
 
         return response()->json($query->paginate(15));
     }
+
     public function search(Request $request)
     {
         $queryText = $request->input('query');
+        $currentUser = $request->user();
 
         if (!$queryText || strlen($queryText) < 3) {
             return response()->json([]);
         }
 
-        // Buscamos resguardantes donde su USUARIO asociado coincida con el nombre o correo
-        $resguardantes = Resguardante::whereHas('usuario', function($q) use ($queryText) {
-                $q->where('usuario_nombre', 'ILIKE', "%{$queryText}%")
-                ->orWhere('usuario_correo', 'ILIKE', "%{$queryText}%");
+        // ID del resguardante actual para no mostrarse a sí mismo
+        $currentResguardanteId = $currentUser->resguardante ? $currentUser->resguardante->id : null;
+
+        $resguardantes = Resguardante::with('usuario') // Traemos la relación (puede ser null)
+            ->where(function($q) use ($queryText) {
+                
+                // 1. Buscamos coincidencias en la tabla USUARIOS (si tiene)
+                $q->whereHas('usuario', function($qu) use ($queryText) {
+                    $qu->where('usuario_nombre', 'ILIKE', "%{$queryText}%")
+                    ->orWhere('usuario_correo', 'ILIKE', "%{$queryText}%");
+                })
+                
+                // 2. O buscamos coincidencias en la tabla RESGUARDANTES directamente
+                // (Esto permite encontrar a Beatriz aunque no tenga usuario)
+                // ¡IMPORTANTE!: Cambia 'res_nombre' por el nombre real de tu columna en la BD
+                ->orWhere('res_nombre', 'ILIKE', "%{$queryText}%"); 
             })
-            ->with('usuario') // Traemos los datos del usuario para mostrar nombre/correo
-            ->limit(5)        // Limitamos a 5 para no saturar
+            // Exclusión de uno mismo
+            ->when($currentResguardanteId, function ($q) use ($currentResguardanteId) {
+                return $q->where('id', '!=', $currentResguardanteId);
+            })
+            ->limit(5)
             ->get();
 
-        // Mapeamos para enviar solo lo necesario al front
         $data = $resguardantes->map(function($res) {
+            // Determinamos si tiene usuario válido
+            $hasUser = $res->usuario ? true : false;
+            
+            // Obtenemos el nombre: Si tiene usuario, del usuario. Si no, del resguardante.
+            // Ajusta 'res_nombre' según tu base de datos.
+            $nombreMostrar = $hasUser ? $res->usuario->usuario_nombre : $res->res_nombre;
+
             return [
-                'id' => $res->id, // ID del resguardante (importante para el traspaso)
-                'nombre' => $res->usuario->usuario_nombre,
-                'correo' => $res->usuario->usuario_correo,
-                'cargo'  => $res->res_cargo ?? 'Sin cargo definido', // Ajusta según tu columna real
-                'iniciales' => substr($res->usuario->usuario_nombre, 0, 2)
+                'id' => $res->id,
+                'nombre' => $nombreMostrar,
+                'correo' => $hasUser ? $res->usuario->usuario_correo : 'Sin correo registrado',
+                'cargo'  => $res->res_cargo ?? 'Sin cargo',
+                // Iniciales
+                'iniciales' => substr($nombreMostrar, 0, 2),
+                
+                // Esta bandera activa el mensaje rojo en el Frontend
+                'tiene_usuario' => $hasUser
             ];
         });
 
         return response()->json($data);
     }
+    public function misMovimientos(Request $request)
+    {
+        $user = $request->user();
 
+        // Traemos los movimientos donde el usuario logueado fue quien realizó la acción (usuario_origen)
+        $movimientos = MovimientoBien::where('movimiento_id_usuario_origen', $user->id)
+            ->with([
+                // 1. Datos del Bien y su Oficina Dueña (Origen)
+                'bien.oficina', 
+                // 2. Datos del Departamento Destino
+                'departamento'
+            ])
+            ->orderBy('movimiento_fecha', 'desc') // Los más recientes primero
+            ->paginate(15);
+
+        return response()->json($movimientos);
+    }
+    public function misTransferencias(Request $request)
+    {
+        $user = $request->user();
+        
+        // Validamos que tenga perfil de resguardante
+        if (!$user->resguardante) {
+            return response()->json(['data' => []]);
+        }
+        
+        $miResguardanteId = $user->resguardante->id;
+
+        // Buscamos traspasos donde soy Origen O Destino
+        $traspasos = Traspaso::with([
+                'bien', 
+                // Cargar datos del OTRO resguardante para saber con quién fue el trato
+                'resguardanteOrigen.usuario', 
+                'resguardanteDestino.usuario'
+            ])
+            ->where(function($q) use ($miResguardanteId) {
+                $q->where('traspaso_id_usuario_origen', $miResguardanteId)
+                ->orWhere('traspaso_id_usuario_destino', $miResguardanteId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return response()->json($traspasos);
+    }
+    public function dashboard(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user->resguardante) {
+            return response()->json(['message' => 'Perfil no encontrado'], 404);
+        }
+
+        $resguardanteId = $user->resguardante->id;
+        $userId = $user->id;
+
+        // 1. Contadores
+        $totalBienes = \App\Models\Bien::where('id_resguardante', $resguardanteId)->count();
+        
+        // Movimientos (físicos) hechos por el usuario
+        $totalMovimientos = \App\Models\MovimientoBien::where('movimiento_id_usuario_origen', $userId)->count();
+        
+        // Transferencias (Traspasos) donde participa (origen o destino)
+        $totalTransferencias = \App\Models\Traspaso::where('traspaso_id_usuario_origen', $resguardanteId)
+            ->orWhere('traspaso_id_usuario_destino', $resguardanteId)
+            ->count();
+
+        // 2. Información de Ubicación (Oficina/Depto)
+        // Cargamos relaciones del resguardante
+        $user->resguardante->load(['oficina', 'departamento']);
+
+        // 3. Últimos 5 movimientos para la tabla
+        $ultimosMovimientos = \App\Models\MovimientoBien::with(['bien', 'departamento'])
+            ->where('movimiento_id_usuario_origen', $userId)
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return response()->json([
+            'contadores' => [
+                'bienes' => $totalBienes,
+                'movimientos' => $totalMovimientos,
+                'transferencias' => $totalTransferencias
+            ],
+            'info' => [
+                'oficina' => $user->resguardante->oficina ? $user->resguardante->oficina->nombre : 'Sin asignar',
+                'departamento' => $user->resguardante->departamento ? $user->resguardante->departamento->dep_nombre : 'Sin asignar',
+            ],
+            'ultimos_movimientos' => $ultimosMovimientos
+        ]);
+    }
 }

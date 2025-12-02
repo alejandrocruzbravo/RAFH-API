@@ -14,10 +14,8 @@ return new class extends Migration
         Schema::create('traspasos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('traspaso_id_bien')->constrained('bienes');
-            // $table->foreign('traspaso_id_usuario_origen')->references('id')->on('usuarios');
-            // $table->foreign('traspaso_id_usuario_destino')->references('id')->on('usuarios');
-            $table->foreignId('traspaso_id_usuario_origen')->constrained('usuarios');
-            $table->foreignId('traspaso_id_usuario_destino')->constrained('usuarios');
+            $table->foreignId('traspaso_id_usuario_origen')->constrained('resguardantes');
+            $table->foreignId('traspaso_id_usuario_destino')->constrained('resguardantes');
             $table->timestamp('traspaso_fecha_solicitud');
            //$table->timestamp('traspaso_fecha_estado');
             $table->string('traspaso_estado');

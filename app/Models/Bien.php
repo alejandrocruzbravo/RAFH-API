@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Resguardo;
 use App\Models\MovimientoBien;
 use App\Models\Traspaso;
@@ -14,7 +15,8 @@ use App\Models\ArchivoBien;
 class Bien extends Model
 {
     use HasFactory;
-
+    use SoftDeletes;
+    
     protected $table = 'bienes';
 
     /**
@@ -146,5 +148,12 @@ class Bien extends Model
         }
         // Puedes retornar null o una imagen por defecto
         return null; 
+    }
+
+    public function traspasoPendiente()
+    {
+        return $this->hasOne(Traspaso::class, 'traspaso_id_bien')
+                    ->where('traspaso_estado', 'Pendiente')
+                    ->latest(); // Por si hubiera error y hay dos, toma el último
     }
 }

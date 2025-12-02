@@ -41,12 +41,29 @@ class SolicitudTraspasoActualizada implements ShouldBroadcastNow
         // Un nombre de evento diferente
         return 'solicitud.actualizada';
     }
+    
     public function broadcastWith(): array
     {
-        // El frontend solo necesita saber el ID y el nuevo estado
+        // Cargamos las relaciones necesarias:
+        // 1. El Bien (para el nombre)
+        // 2. El Resguardante Origen -> y su Usuario (para obtener el ID de usuario login)
+        $this->traspaso->load(['bien', 'resguardanteOrigen.usuario']);
+
+        // Obtenemos el ID del USUARIO (Login) que solicitó el traspaso
+        // Navegamos: Traspaso -> ResguardanteOrigen -> Usuario -> ID
+        $userId = $this->traspaso->resguardanteOrigen 
+                  && $this->traspaso->resguardanteOrigen->usuario 
+                  ? $this->traspaso->resguardanteOrigen->usuario->id 
+                  : null;
+
         return [
             'id' => $this->traspaso->id,
             'estado' => $this->traspaso->traspaso_estado,
+            'bien_nombre' => $this->traspaso->bien ? $this->traspaso->bien->bien_descripcion : 'un bien',
+            
+            // ESTA ES LA CLAVE: Enviamos el ID de la tabla 'users' (ej. 3)
+            // para que coincida con lo que tienes en localStorage
+            'user_id_destinatario' => $userId, 
         ];
     }
 }

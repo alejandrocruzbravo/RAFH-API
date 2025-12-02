@@ -48,23 +48,18 @@ class Traspaso extends Model
         return $this->belongsTo(Bien::class, 'traspaso_id_bien', 'id');
     }
 
-    /**
-     * Obtiene el usuario (Resguardante/Gestor) que origina el traspaso.
-     */
-    public function usuarioOrigen()
+    public function resguardanteOrigen() // Sugiero renombrar la relación si puedes
     {
-        // Un traspaso pertenece a un Usuario (como origen)
-        return $this->belongsTo(Usuario::class, 'traspaso_id_usuario_origen', 'id');
+        // 'traspaso_id_usuario_origen' ahora guarda un ID de resguardante
+         return $this->belongsTo(Resguardante::class, 'traspaso_id_usuario_origen');
     }
 
-    /**
-     * Obtiene el usuario (Resguardante/Gestor) que recibe el traspaso.
-     */
-    public function usuarioDestino()
+    public function resguardanteDestino()
     {
-        // Un traspaso pertenece a un Usuario (como destino)
-        return $this->belongsTo(Usuario::class, 'traspaso_id_usuario_destino', 'id');
+        // 'traspaso_id_usuario_destino' ahora guarda un ID de resguardante
+         return $this->belongsTo(Resguardante::class, 'traspaso_id_usuario_destino');
     }
+
     
     public function confirmacion()
     {

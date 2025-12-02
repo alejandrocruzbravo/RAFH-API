@@ -11,6 +11,8 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Support\Facades\Log;
+
+
 class SolicitudTraspasoCreada implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
@@ -52,8 +54,8 @@ class SolicitudTraspasoCreada implements ShouldBroadcastNow
         $payload = [
             'id' => $this->traspaso->id,
             'bien_nombre' => $this->traspaso->bien->bien_nombre,
-            'emisor' => $this->traspaso->usuarioOrigen->usuario_nombre,
-            'receptor' => $this->traspaso->usuarioDestino->usuario_nombre,
+            'emisor' => $this->traspaso->resguardanteOrigen->res_nombre,
+            'receptor' => $this->traspaso->resguardanteDestino->res_nombre,
             'estado' => $this->traspaso->traspaso_estado,
             'fecha' => $this->traspaso->traspaso_fecha_solicitud->toFormattedDateString(),
         ];
