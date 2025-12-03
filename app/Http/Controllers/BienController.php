@@ -831,123 +831,174 @@ class BienController extends Controller
     }
 
     public function procesarLevantamiento(Request $request)
-{
-    // 1. Validación con los nombres de columna correctos
-    $request->validate([
-        'id_oficina_levantamiento' => 'required|exists:oficinas,id',
-        
-        'encontrados' => 'array',
-        'encontrados.*.id' => 'required|exists:bienes,id',
-        
-        // Nombres corregidos:
-        'encontrados.*.bien_marca' => 'nullable|string|max:100',
-        'encontrados.*.bien_modelo' => 'nullable|string|max:100',
-        'encontrados.*.bien_serie' => 'nullable|string|max:100',
-        'encontrados.*.bien_descripcion' => 'nullable|string|max:255',
-        'encontrados.*.bien_caracteristicas' => 'nullable|string',
-
-        'faltantes' => 'array',
-        'faltantes.*.id' => 'required|exists:bienes,id',
-        'sobrantes' => 'array',
-        'sobrantes.*.id' => 'required|exists:bienes,id',
-    ]);
-
-    $idOficinaFisica = $request->input('id_oficina_levantamiento');
-
-    try {
-        DB::transaction(function () use ($request, $idOficinaFisica) {
+    {
+        // 1. VALIDACIÓN
+        $request->validate([
+            'id_oficina_levantamiento' => 'required|exists:oficinas,id',
             
-            // ---------------------------------------------------------
-            // 1. BIENES ENCONTRADOS
-            // ---------------------------------------------------------
-            $encontrados = $request->input('encontrados', []);
+            'encontrados' => 'array',
+            'encontrados.*.id' => 'required|exists:bienes,id',
+            // Validamos los campos editables con el prefijo correcto
+            'encontrados.*.bien_marca' => 'nullable|string|max:100',
+            'encontrados.*.bien_modelo' => 'nullable|string|max:100',
+            'encontrados.*.bien_serie' => 'nullable|string|max:100',
+            'encontrados.*.bien_descripcion' => 'nullable|string|max:255',
+            'encontrados.*.bien_caracteristicas' => 'nullable|string',
+
+            'faltantes' => 'array',
+            'faltantes.*.id' => 'required|exists:bienes,id',
             
-            foreach ($encontrados as $item) {
-                $bien = Bien::find($item['id']);
-                if (!$bien) continue;
+            'sobrantes' => 'array',
+            'sobrantes.*.id' => 'required|exists:bienes,id',
+        ]);
 
-                // Actualizaciones obligatorias (Lógica de negocio)
-                $bien->bien_ubicacion_actual = $idOficinaFisica;
-                $bien->bien_estado = 'Activo';
+        $idOficinaFisica = $request->input('id_oficina_levantamiento');
 
-                // Extraemos solo los campos editables usando los nombres correctos
-                $datosEditables = Arr::only($item, [
-                    'bien_marca', 
-                    'bien_modelo', 
-                    'bien_serie', 
-                    'bien_descripcion', 
-                    'bien_caracteristicas'
-                ]);
-
-                // Actualiza solo si vienen datos en el JSON
-                if (!empty($datosEditables)) {
-                    $bien->fill($datosEditables);
-                }
-
-                $bien->save();
-            }
-
-            // ... (El resto del código para Faltantes y Sobrantes sigue igual) ...
-            
-            // 2. FALTANTES
-            $faltantes = $request->input('faltantes', []);
-            foreach ($faltantes as $item) {
-                $bien = Bien::find($item['id']);
-                if (!$bien) continue;
-                $accion = $item['accion'] ?? 'EXTRAVIADO';
+        try {
+            DB::transaction(function () use ($request, $idOficinaFisica) {
                 
-                switch ($accion) {
-                    case 'EN_TRANSITO':
-                        $bien->bien_estado = 'En tránsito';
-                        if (isset($item['id_oficina_destino'])) {
-                            $bien->bien_ubicacion_actual = $item['id_oficina_destino'];
-                        }
-                        break;
-                    case 'ACTIVO':
-                        $bien->bien_estado = 'Activo';
-                        $bien->bien_ubicacion_actual = $idOficinaFisica; 
-                        break;
-                    default:
-                        $bien->bien_estado = 'Extraviado';
-                        break;
-                }
-                $bien->save();
-            }
+                // ==========================================
+                // 1. BIENES ENCONTRADOS
+                // ==========================================
+                $encontrados = $request->input('encontrados', []);
+                
+                foreach ($encontrados as $item) {
+                    $bien = Bien::find($item['id']);
+                    if (!$bien) continue;
 
-            // 3. SOBRANTES
-            $sobrantes = $request->input('sobrantes', []);
-            foreach ($sobrantes as $item) {
-                $bien = Bien::find($item['id']);
-                if (!$bien) continue;
+                    // A. Determinamos el estado y ubicación según la "accion"
+                    $accion = $item['accion'] ?? 'ACTIVO'; 
 
-                // Tu lógica de resguardo aquí...
-                // if ($bien->tieneResguardoActivo()) continue; 
+                    switch ($accion) {
+                        case 'EN_TRANSITO':
+                            $bien->bien_estado = 'En tránsito';
+                            // Si se define destino, se actualiza, si no, se queda donde se encontró
+                            if (isset($item['id_oficina_destino'])) {
+                                $bien->bien_ubicacion_actual = $item['id_oficina_destino'];
+                            } else {
+                                $bien->bien_ubicacion_actual = $idOficinaFisica;
+                            }
+                            break;
 
-                $accion = $item['accion'] ?? '';
-                if ($accion === 'ACTUALIZAR_AQUI') {
-                    $bien->bien_ubicacion_actual = $idOficinaFisica;
-                    $bien->bien_estado = 'Activo';
-                } elseif ($accion === 'REGRESAR_ORIGEN') {
-                    if ($bien->id_oficina) {
-                        $bien->bien_ubicacion_actual = $bien->id_oficina;
-                        $bien->bien_estado = 'Activo'; 
+                        case 'EXTRAVIADO':
+                            $bien->bien_estado = 'Extraviado';
+                            $bien->bien_ubicacion_actual = $idOficinaFisica;
+                            break;
+
+                        case 'ACTIVO':
+                        default:
+                            $bien->bien_estado = 'Activo';
+                            $bien->bien_ubicacion_actual = $idOficinaFisica;
+                            break;
                     }
+
+                    // B. Actualización de información (Edición)
+                    // Filtramos solo los campos que coinciden con la BD
+                    $datosEditables = Arr::only($item, [
+                        'bien_marca', 
+                        'bien_modelo', 
+                        'bien_serie', 
+                        'bien_descripcion', 
+                        'bien_caracteristicas'
+                    ]);
+
+                    // Si el array contiene datos, actualizamos
+                    if (!empty($datosEditables)) {
+                        $bien->fill($datosEditables);
+                    }
+
+                    $bien->save();
                 }
-                $bien->save();
-            }
-        });
 
-        event(new BienEstadoActualizado(null, 'ACTUALIZACION_MASIVA', $idOficinaFisica));
+                // ==========================================
+                // 2. BIENES FALTANTES
+                // ==========================================
+                $faltantes = $request->input('faltantes', []);
+                
+                foreach ($faltantes as $item) {
+                    $bien = Bien::find($item['id']);
+                    if (!$bien) continue;
+                    
+                    $accion = $item['accion'] ?? 'EXTRAVIADO';
+                    
+                    switch ($accion) {
+                        case 'EN_TRANSITO':
+                            $bien->bien_estado = 'En tránsito';
+                            if (isset($item['id_oficina_destino'])) {
+                                $bien->bien_ubicacion_actual = $item['id_oficina_destino'];
+                            }
+                            break;
+                            
+                        case 'ACTIVO': // Apareció de nuevo
+                            $bien->bien_estado = 'Activo';
+                            $bien->bien_ubicacion_actual = $idOficinaFisica; 
+                            break;
+                            
+                        case 'EXTRAVIADO':
+                        default:
+                            $bien->bien_estado = 'Extraviado';
+                            break;
+                    }
+                    $bien->save();
+                }
 
-        return response()->json(['message' => 'Levantamiento procesado correctamente.']);
+                // ==========================================
+                // 3. BIENES SOBRANTES
+                // ==========================================
+                $sobrantes = $request->input('sobrantes', []);
+                
+                foreach ($sobrantes as $item) {
+                    $bien = Bien::find($item['id']);
+                    if (!$bien) continue;
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Error al procesar el levantamiento',
-            'error' => $e->getMessage()
-        ], 500);
+                    // --- VALIDACIÓN DE RESGUARDO ---
+                    // Verifica que la relación 'resguardos' exista en tu modelo Bien.
+                    // Si el nombre de la relación es diferente, ajústalo aquí.
+                    $tieneResguardoActivo = false;
+                    
+                    // Descomenta y ajusta según tu lógica real:
+                    /* $tieneResguardoActivo = $bien->resguardos()
+                        ->where('estado', 'Activo') // Asumiendo campo 'estado'
+                        ->exists();
+                    */
+
+                    if ($tieneResguardoActivo) {
+                        // Si tiene resguardo, NO movemos el bien.
+                        continue; 
+                    }
+
+                    $accion = $item['accion'] ?? '';
+
+                    if ($accion === 'ACTUALIZAR_AQUI') {
+                        // Se adopta en la oficina actual
+                        $bien->bien_ubicacion_actual = $idOficinaFisica;
+                        $bien->bien_estado = 'Activo';
+                    } elseif ($accion === 'REGRESAR_ORIGEN') {
+                        // Vuelve a su dueño original (si existe dato en id_oficina)
+                        if ($bien->id_oficina) {
+                            $bien->bien_ubicacion_actual = $bien->id_oficina;
+                            $bien->bien_estado = 'Activo'; 
+                        }
+                    }
+                    
+                    $bien->save();
+                }
+
+            }); // Fin Transacción
+
+            // Evento WebSocket para notificar al Frontend
+            // Asegúrate que tu clase de evento tenga la propiedad pública $nuevoEstado
+            event(new BienEstadoActualizado(null, 'ACTUALIZACION_MASIVA', $idOficinaFisica));
+
+            return response()->json(['message' => 'Levantamiento procesado correctamente.']);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al procesar el levantamiento',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-}
     
     public function subirFoto(Request $request, $id)
     {
