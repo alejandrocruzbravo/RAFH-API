@@ -937,7 +937,7 @@ class BienController extends Controller
             }
         });
 
-        event(new BienEstadoActualizado(null, 'ACTUALIZAR_MASIVA', $idOficinaFisica));
+        event(new BienEstadoActualizado(null, 'ACTUALIZACION_MASIVA', $idOficinaFisica));
 
         return response()->json(['message' => 'Levantamiento procesado correctamente.']);
 
