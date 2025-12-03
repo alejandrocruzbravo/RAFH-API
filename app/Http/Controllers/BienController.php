@@ -13,6 +13,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Throwable;
 
@@ -1027,4 +1028,20 @@ class BienController extends Controller
             'foto_url' => $bien->foto_url // Usamos el accessor
         ]);
     }
-}
+    public function getFotoUrlAttribute()
+    {
+        if ($this->bien_foto) {
+            // Opción A (Más segura para redes locales): Usar asset
+            return asset('storage/' . $this->bien_foto);
+            
+            // Opción B (Standard): Usar Storage::url
+            // return Storage::url($this->bien_foto);
+        }
+        
+        // Si no hay foto, devuelve null o una imagen por defecto
+        return null; 
+    }
+
+        // Asegúrate de que 'foto_url' esté en el append si usas toArray() en otros lados
+        protected $appends = ['foto_url'];
+    }
