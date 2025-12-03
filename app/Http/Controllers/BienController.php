@@ -831,12 +831,15 @@ class BienController extends Controller
 
     public function procesarLevantamiento(Request $request)
     {
-        // Validamos
+        // 1. Validación (Aseguramos que lleguen arrays de objetos)
         $request->validate([
             'id_oficina_levantamiento' => 'required|exists:oficinas,id',
             'encontrados' => 'array',
-            'faltantes'   => 'array',
-            'sobrantes'   => 'array',
+            'encontrados.*.id' => 'required|exists:bienes,id',
+            'faltantes' => 'array',
+            'faltantes.*.id' => 'required|exists:bienes,id',
+            'sobrantes' => 'array',
+            'sobrantes.*.id' => 'required|exists:bienes,id',
         ]);
 
         $idOficinaFisica = $request->input('id_oficina_levantamiento');
@@ -844,55 +847,111 @@ class BienController extends Controller
         try {
             DB::transaction(function () use ($request, $idOficinaFisica) {
                 
+                // ---------------------------------------------------------
                 // 1. BIENES ENCONTRADOS
-                if (!empty($request->input('encontrados'))) {
-                    Bien::whereIn('bien_codigo', $request->input('encontrados'))
-                        ->update([
-                            'bien_estado' => 'Activo',
-                            'bien_ubicacion_actual' => $idOficinaFisica
-                        ]);
-                }
-
-                // 2. BIENES FALTANTES
-                $faltantes = $request->input('faltantes', []);
-                foreach ($faltantes as $item) {
-                    // Aquí sí usas ID según tu JSON
+                // "Permite mover y editar la información"
+                // ---------------------------------------------------------
+                $encontrados = $request->input('encontrados', []);
+                foreach ($encontrados as $item) {
                     $bien = Bien::find($item['id']);
                     if (!$bien) continue;
 
-                    if ($item['estado'] === 'En tránsito') {
-                        $bien->bien_estado = 'En tránsito';
-                        
-                        if (isset($item['id_oficina_destino'])) {
-                            $bien->bien_ubicacion_actual = $item['id_oficina_destino'];
-                        }
-                    } else {
-                        $bien->bien_estado = 'Extravíado';
+                    // Actualizamos ubicación (Mover)
+                    $bien->bien_ubicacion_actual = $idOficinaFisica;
+                    $bien->bien_estado = 'Activo';
+
+                    // Si envías más datos para editar en el array (ej. descripción, serie),
+                    // puedes actualizarlos aquí dinámicamente:
+                    if (isset($item['descripcion'])) {
+                        $bien->descripcion = $item['descripcion'];
+                    }
+                    // (Agrega aquí otros campos que desees editar)
+
+                    $bien->save();
+                }
+
+                // ---------------------------------------------------------
+                // 2. BIENES FALTANTES
+                // "Cambiar estados a extraviado, en tránsito y a activo"
+                // ---------------------------------------------------------
+                $faltantes = $request->input('faltantes', []);
+                foreach ($faltantes as $item) {
+                    $bien = Bien::find($item['id']);
+                    if (!$bien) continue;
+
+                    // El estado depende de lo que envíe el front en 'accion' o 'nuevo_estado'
+                    $accion = $item['accion'] ?? 'EXTRAVIADO'; // Default
+
+                    switch ($accion) {
+                        case 'EN_TRANSITO':
+                            $bien->bien_estado = 'En tránsito';
+                            // Opcional: Si se define hacia dónde va
+                            if (isset($item['id_oficina_destino'])) {
+                                $bien->bien_ubicacion_actual = $item['id_oficina_destino'];
+                            }
+                            break;
+
+                        case 'ACTIVO': // "Si vuelve a aparecer"
+                            $bien->bien_estado = 'Activo';
+                            // Asumimos que si aparece, está en la oficina donde se hace el levantamiento
+                            $bien->bien_ubicacion_actual = $idOficinaFisica; 
+                            break;
+
+                        case 'EXTRAVIADO':
+                        default:
+                            $bien->bien_estado = 'Extraviado';
+                            break;
                     }
                     $bien->save();
                 }
 
+                // ---------------------------------------------------------
                 // 3. BIENES SOBRANTES
+                // "Regresar origen o Actualizar aquí. SOLO si no tiene resguardo activo"
+                // ---------------------------------------------------------
                 $sobrantes = $request->input('sobrantes', []);
                 foreach ($sobrantes as $item) {
                     $bien = Bien::find($item['id']);
                     if (!$bien) continue;
 
-                    if ($item['accion'] === 'ACTUALIZAR_AQUI') {
-                        $bien->bien_estado = 'En tránsito';
-                        $bien->bien_ubicacion_actual = $idOficinaFisica;
-                        
-                    } elseif ($item['accion'] === 'REGRESAR_ORIGEN') {
-                        $bien->bien_estado = 'Activo';
-                        // Regresa a su origen (id_oficina)
-                        $bien->bien_ubicacion_actual = $bien->id_oficina; 
+                    // === VERIFICACIÓN DE RESGUARDO ===
+                    // Asumo que tienes una relación 'resguardos' o 'empleado_resguardo'.
+                    // Debes ajustar esta línea a tu lógica real de base de datos.
+                    // Ejemplo: Verificar si existe un resguardo con estado 'Activo'
+                    
+                    $tieneResguardoActivo = $bien->resguardos()
+                                                ->where('estado', 'Activo') // Ajusta el campo de estado
+                                                ->exists();
+
+                    // Si tiene resguardo, NO se toca la ubicación (según requerimiento)
+                    if ($tieneResguardoActivo) {
+                        continue; 
                     }
+
+                    $accion = $item['accion'] ?? '';
+
+                    if ($accion === 'ACTUALIZAR_AQUI') {
+                        // Pasar el bien_ubicacion_actual al id_oficina_levantamiento
+                        $bien->bien_ubicacion_actual = $idOficinaFisica;
+                        $bien->bien_estado = 'Activo';
+                    } 
+                    elseif ($accion === 'REGRESAR_ORIGEN') {
+                        // Regresar a su origen (id_oficina original)
+                        // Asumimos que 'id_oficina' es la columna de la oficina "dueña" del bien
+                        if ($bien->id_oficina) {
+                            $bien->bien_ubicacion_actual = $bien->id_oficina;
+                            $bien->bien_estado = 'Activo'; // O 'En tránsito' según tu lógica
+                        }
+                    }
+
                     $bien->save();
                 }
             });
-            event(new BienEstadoActualizado(null, 'ACTUALIZACION_MASIVA', $idOficinaFisica));
 
-            return response()->json(['message' => 'Levantamiento de inventario procesado correctamente.']);
+            // Evento Websocket para refrescar el front
+            event(new BienEstadoActualizado(null, 'ACTUALIZAR_MASIVA', $idOficinaFisica));
+
+            return response()->json(['message' => 'Levantamiento procesado correctamente.']);
 
         } catch (\Exception $e) {
             return response()->json([
