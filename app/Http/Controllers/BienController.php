@@ -267,19 +267,57 @@ class BienController extends Controller
      * @OA\Response(response=404, description="Bien no encontrado")
      * )
      */
-    public function show(Bien $biene) // Laravel inyecta el modelo aunque el parametro se llame diferente en la ruta si se configura o si coincide
+    public function show(Bien $biene)
     {
-        // Nota: Asegúrate de que en tu ruta el parámetro sea {biene} o {bien} para que coincida con la variable
-        // Si usas apiResource('bienes') el parámetro es {biene} (singular de bienes)
-        $biene->load(
-            'oficina.departamento.area', 
-            'oficina.edificio', 
-            'resguardos.resguardante', 
-            'movimientosBien', 
+        // 1. Cargar relaciones necesarias
+        $biene->load([
+            'oficina.departamento.area',
+            'oficina.edificio',
+            'resguardos.resguardante',      // Para nombre/apellidos
+            'movimientosBien.departamento', // Para nombre de oficina destino
             'traspasos.usuarioOrigen'
-        );
-        return $biene;
-    }
+        ]);
+
+        // 2. Procesar HISTORIAL DE RESGUARDOS
+        // Solo queremos: fecha, nombre y apellidos
+        $historialResguardos = $biene->resguardos->map(function ($resguardo) {
+            return [
+                'resguardo_fecha_asignacion' => $resguardo->resguardo_fecha_asignacion,
+                'res_nombre'    => $resguardo->resguardante ? $resguardo->resguardante->res_nombre : 'Sin nombre',
+                'res_apellidos' => $resguardo->resguardante ? $resguardo->resguardante->res_apellidos : '',
+            ];
+        });
+
+        // 3. Procesar HISTORIAL DE UBICACIONES
+        // Filtro: Solo 'MOVIMIENTO' (quitamos 'ALTA')
+        // Datos: Solo fecha y nombre del departamento destino
+        $historialUbicaciones = $biene->movimientosBien
+            ->filter(function ($movimiento) {
+                return $movimiento->movimiento_tipo === 'MOVIMIENTO';
+            })
+            ->map(function ($movimiento) {
+                return [
+                    'movimiento_fecha' => $movimiento->movimiento_fecha,
+                    'destino_oficina'  => $movimiento->departamento ? $movimiento->departamento->dep_nombre : 'Ubicación Desconocida',
+                ];
+            })
+            ->values(); // IMPORTANTE: Resetea los índices del array para que sea un JSON Array [..] y no un Objeto {"2":..}
+
+        // 4. Construir la respuesta final limpia
+        // Convertimos el bien a array y sobrescribimos las relaciones con nuestros datos filtrados
+        $respuesta = $biene->toArray();
+        
+        // Reemplazamos los arrays "sucios" por los filtrados
+        $respuesta['resguardos'] = $historialResguardos;
+        $respuesta['movimientos_bien'] = $historialUbicaciones;
+
+        // Opcional: Si quieres usar nombres de clave personalizados como pediste en el ejemplo anterior:
+        // $respuesta['historial_resguardos'] = $historialResguardos;
+        // $respuesta['historial_ubicaciones'] = $historialUbicaciones;
+        // unset($respuesta['resguardos'], $respuesta['movimientos_bien']); // Borramos los originales
+
+        return response()->json($respuesta);
+}
     /**
      * @OA\Put(
      * path="/api/bienes/{id}",
