@@ -18,12 +18,10 @@ class DepartamentoFactory extends Factory
     public function definition(): array
     {
         return [
-            // Definimos valores por defecto (por si creamos deptos aleatorios)
             'dep_nombre' => fake()->jobTitle(),
             'dep_codigo' => 'D' . fake()->unique()->numerify('###'),
             'dep_resposable' => fake()->name(), 
             'dep_correo_institucional' => fake()->companyEmail(),
-            // 'id_area' => Area::factory(), // Si lo necesitas
         ];
     }
 }

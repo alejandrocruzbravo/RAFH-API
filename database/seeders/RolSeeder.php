@@ -13,7 +13,7 @@ class RolSeeder extends Seeder
             ['rol_nombre' => 'Administrador'],
             ['rol_nombre' => 'Gestor'],
             ['rol_nombre' => 'Resguardante'],
-            ['rol_nombre'=>'Jefe Departamento']
+            ['rol_nombre'=>'Jefe Departamento'],
         ]);
     }
 }

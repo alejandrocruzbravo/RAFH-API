@@ -22,7 +22,7 @@ return new class extends Migration
                   ->constrained('edificios')
                   ->onDelete('set null'); // Opcional: si se borra el edificio, se pone null
 
-            $table->unsignedBigInteger('id_resguardante_responsable')->nullable();
+           // $table->unsignedBigInteger('id_resguardante_responsable')->nullable();
             $table->timestamps();
         });
     }

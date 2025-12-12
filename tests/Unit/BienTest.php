@@ -17,7 +17,6 @@ class BienTest extends TestCase
         $serie = 'ABC';
         $codigo = Bien::generarCodigo($serie);
 
-        // Verificación (Assert): 
         // Concatenación: 'I'.0.'-23-'.'ABC' -> I0-23-ABC
         $this->assertEquals('I0-23-ABC', $codigo);
     }

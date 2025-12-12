@@ -28,8 +28,6 @@ use App\Http\Controllers\ResguardoController;
 
 use App\Http\Controllers\MovimientoBienController;
 
-//Controladores de HACKATON
-use App\Http\Controllers\ConfiguracionInventarioController;
 use Illuminate\Support\Facades\Broadcast;
 /*
 |--------------------------------------------------------------------------
@@ -67,7 +65,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('formularios/oficinas', OficinaFormController::class)->name('formularios.oficinas'); //Formulario de registro de oficinas
         Route::get('formularios/roles', RolFormController::class)->name('formularios.roles'); // Formulario de roles
         Route::get('formularios/resguardantes', ResguardanteFormController::class)->name('formularios.resguardantes'); // Formulario de resguardantes
-        //Route::get('areas/{area}/structure', [AreaController::class, 'getStructure'])->name('areas.structure'); // Estructura jerarquica de área
+        
         Route::get('oficinas/{oficina}/bienes', [OficinaController::class, 'getBienes'])->name('oficinas.bienes'); // Bienes por oficina
         Route::get('catalogo-cucop', [CatalogoCucopController::class, 'index'])->name('catalogo.index'); // Listar catálogo CUCOP
         Route::get('/bienes/bajas', [BienController::class, 'bajas']);                 // Listar bienes dados de baja    
@@ -77,7 +75,6 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('/oficinas/{id}/resguardantes', [ResguardanteController::class, 'indexByOficina']); //
         Route::get('/admin/movimientos', [MovimientoBienController::class, 'index']);
 
-        Route::post('/configuracion-inventario', [ConfiguracionInventarioController::class, 'store']);
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
         Route::post('inventario/comparar', [BienController::class, 'compararInventario']);
         Route::post('/inventario/levantamiento', [BienController::class, 'procesarLevantamiento']);

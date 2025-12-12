@@ -1,37 +1,41 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "API de Inventario RAFH",
-        "description": "Documentación interactiva para la gestión de bienes, resguardantes y traspasos.",
+        "title": "API de Sistema de Inventario",
+        "description": "Documentación oficial de la API para la gestión de inventarios, áreas y bienes.",
         "contact": {
-            "email": "admin@tu-institucion.com"
+            "email": "soporte@tuempresa.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
         },
         "version": "1.0.0"
     },
     "servers": [
         {
             "url": "http://localhost:8081/api",
-            "description": "Servidor Principal de API"
+            "description": "Servidor Principal de la API"
         }
     ],
     "paths": {
         "/areas": {
             "get": {
                 "tags": [
-                    "Áreas"
+                    "Areas"
                 ],
                 "summary": "Listar todas las áreas",
-                "description": "Listar Áreas\n\nObtiene todas las áreas registradas, incluyendo información resumida de sus departamentos, edificio y responsable.",
+                "description": "Retorna un listado de áreas con sus departamentos, edificio y responsable.",
                 "operationId": "b35f6f18c1157ebddfba113fe246bf90",
                 "responses": {
                     "200": {
-                        "description": "Lista de áreas",
+                        "description": "Operación exitosa",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "type": "object"
+                                        "$ref": "#/components/schemas/Area"
                                     }
                                 }
                             }
@@ -41,10 +45,9 @@
             },
             "post": {
                 "tags": [
-                    "Áreas"
+                    "Areas"
                 ],
                 "summary": "Crear una nueva área",
-                "description": "Crear Área\n\nRegistra una nueva área. Valida que el responsable tenga el rol de 'Subdirector'.",
                 "operationId": "e3b3bd99f2014fd763018a030be4fd38",
                 "requestBody": {
                     "required": true,
@@ -52,27 +55,18 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "area_nombre",
-                                    "area_codigo"
+                                    "name"
                                 ],
                                 "properties": {
-                                    "area_nombre": {
+                                    "name": {
+                                        "description": "Nombre del área",
                                         "type": "string",
-                                        "example": "Subdirección Académica"
+                                        "example": "Almacén B"
                                     },
-                                    "area_codigo": {
+                                    "description": {
+                                        "description": "Descripción opcional",
                                         "type": "string",
-                                        "example": "002"
-                                    },
-                                    "id_resguardante_responsable": {
-                                        "description": "ID del resguardante (Debe ser Subdirector)",
-                                        "type": "integer",
-                                        "nullable": true
-                                    },
-                                    "id_edificio": {
-                                        "description": "ID del edificio principal",
-                                        "type": "integer",
-                                        "nullable": true
+                                        "example": "Sector de fríos"
                                     }
                                 },
                                 "type": "object"
@@ -81,18 +75,8 @@
                     }
                 },
                 "responses": {
-                    "201": {
-                        "description": "Área creada exitosamente",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Error de validación (código duplicado o responsable inválido)"
+                    "200": {
+                        "description": "Área creada exitosamente"
                     }
                 }
             }
@@ -100,10 +84,10 @@
         "/areas/{id}": {
             "get": {
                 "tags": [
-                    "Áreas"
+                    "Areas"
                 ],
-                "summary": "Obtener detalles de un área",
-                "description": "Ver Área\n\nMuestra los detalles de un área específica.",
+                "summary": "Obtener detalles de un área específica",
+                "description": "Retorna la información del área junto con su edificio, responsable y departamentos asociados.",
                 "operationId": "89b34cddfab1b7c50aba560bfbe01069",
                 "parameters": [
                     {
@@ -118,10 +102,75 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Datos del área",
+                        "description": "Detalles del área encontrados",
                         "content": {
                             "application/json": {
                                 "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "area_nombre": {
+                                            "type": "string",
+                                            "example": "Dirección de TI"
+                                        },
+                                        "area_codigo": {
+                                            "type": "string",
+                                            "example": "TI-001"
+                                        },
+                                        "edificio": {
+                                            "description": "Datos del edificio (cargado con load)",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "nombre": {
+                                                    "type": "string",
+                                                    "example": "Edificio Central"
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "responsable": {
+                                            "description": "Datos del responsable (cargado con load)",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "res_nombre": {
+                                                    "type": "string",
+                                                    "example": "Carlos"
+                                                },
+                                                "res_apellidos": {
+                                                    "type": "string",
+                                                    "example": "López"
+                                                }
+                                            },
+                                            "type": "object",
+                                            "nullable": true
+                                        },
+                                        "departamentos": {
+                                            "description": "Lista de departamentos asociados",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 45
+                                                    },
+                                                    "dep_nombre": {
+                                                        "type": "string",
+                                                        "example": "Soporte Técnico"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
                                     "type": "object"
                                 }
                             }
@@ -134,15 +183,15 @@
             },
             "put": {
                 "tags": [
-                    "Áreas"
+                    "Areas"
                 ],
-                "summary": "Actualizar información de un área",
-                "description": "Actualizar Área",
+                "summary": "Actualizar un área existente",
                 "operationId": "2a84eb6438724f670b6c0e3cce2544e3",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "ID del área a actualizar",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -150,6 +199,7 @@
                     }
                 ],
                 "requestBody": {
+                    "description": "Datos del área a actualizar",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -160,17 +210,25 @@
                                 ],
                                 "properties": {
                                     "area_nombre": {
-                                        "type": "string"
+                                        "description": "Nombre del área",
+                                        "type": "string",
+                                        "example": "Dirección General"
                                     },
                                     "area_codigo": {
-                                        "type": "string"
+                                        "description": "Código único del área",
+                                        "type": "string",
+                                        "example": "DG-001"
                                     },
                                     "id_resguardante_responsable": {
+                                        "description": "ID del usuario subdirector responsable",
                                         "type": "integer",
+                                        "example": 5,
                                         "nullable": true
                                     },
                                     "id_edificio": {
+                                        "description": "ID del edificio asociado",
                                         "type": "integer",
+                                        "example": 2,
                                         "nullable": true
                                     }
                                 },
@@ -181,24 +239,53 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Área actualizada"
+                        "description": "Área actualizada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "area_nombre": {
+                                            "type": "string",
+                                            "example": "Dirección General"
+                                        },
+                                        "area_codigo": {
+                                            "type": "string",
+                                            "example": "DG-001"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "422": {
-                        "description": "Error de validación"
+                        "description": "Error de validación (ej. código duplicado o resguardante inválido)"
+                    },
+                    "404": {
+                        "description": "Área no encontrada"
                     }
                 }
             },
             "delete": {
                 "tags": [
-                    "Áreas"
+                    "Areas"
                 ],
                 "summary": "Eliminar un área",
-                "description": "Eliminar Área",
+                "description": "Elimina un área solo si no tiene departamentos ni bienes asociados.",
                 "operationId": "d8261e1575a2a594723f0f7b6e971997",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "ID del área a eliminar",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -207,13 +294,26 @@
                 ],
                 "responses": {
                     "204": {
-                        "description": "Eliminado exitosamente"
+                        "description": "Área eliminada correctamente (Sin contenido)"
                     },
                     "409": {
-                        "description": "Conflicto: No se puede eliminar porque tiene departamentos o bienes asociados"
+                        "description": "Conflicto: No se puede eliminar porque tiene dependencias",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No se puede eliminar el área. Aún tiene departamentos asociados."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
-                    "500": {
-                        "description": "Error del servidor"
+                    "404": {
+                        "description": "Área no encontrada"
                     }
                 }
             }
@@ -221,15 +321,16 @@
         "/areas/{id}/structure": {
             "get": {
                 "tags": [
-                    "Áreas"
+                    "Areas"
                 ],
-                "summary": "Obtener estructura (Deptos -> Oficinas)",
-                "description": "Obtener Estructura Jerárquica\n\nDevuelve la lista de departamentos y oficinas que pertenecen a esta área.",
+                "summary": "Obtener estructura jerárquica del área",
+                "description": "Retorna los departamentos del área y sus respectivas oficinas.",
                 "operationId": "f07ec1866e04eb756f409e850a802b0d",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
+                        "description": "ID del área",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -238,7 +339,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Estructura jerárquica",
+                        "description": "Estructura completa encontrada",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -246,23 +347,32 @@
                                     "items": {
                                         "properties": {
                                             "id": {
-                                                "type": "integer"
+                                                "type": "integer",
+                                                "example": 10
                                             },
                                             "dep_nombre": {
-                                                "type": "string"
+                                                "type": "string",
+                                                "example": "Recursos Humanos"
+                                            },
+                                            "dep_codigo": {
+                                                "type": "string",
+                                                "example": "RH-01"
                                             },
                                             "oficinas": {
                                                 "type": "array",
                                                 "items": {
                                                     "properties": {
                                                         "id": {
-                                                            "type": "integer"
+                                                            "type": "integer",
+                                                            "example": 5
                                                         },
                                                         "nombre": {
-                                                            "type": "string"
+                                                            "type": "string",
+                                                            "example": "Oficina de Nóminas"
                                                         },
                                                         "ofi_codigo": {
-                                                            "type": "string"
+                                                            "type": "string",
+                                                            "example": "NOM-01"
                                                         }
                                                     },
                                                     "type": "object"
@@ -274,6 +384,9 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Área no encontrada"
                     }
                 }
             }
@@ -361,23 +474,24 @@
                 "tags": [
                     "Bienes"
                 ],
-                "summary": "Listar y filtrar bienes",
-                "description": "Listar Bienes\n\nMuestra una lista paginada de bienes. Permite búsqueda global y filtrado por oficina.",
+                "summary": "Listar bienes con filtros",
+                "description": "Obtiene una lista paginada de bienes. Requiere enviar 'search' O 'id_oficina'.",
                 "operationId": "343ae9aa31955958a0ce900dcb350c7c",
                 "parameters": [
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Término de búsqueda (código, serie, descripción, clave)",
+                        "description": "Término de búsqueda (código, serie, descripción)",
                         "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "minLength": 3
                         }
                     },
                     {
                         "name": "id_oficina",
                         "in": "query",
-                        "description": "Filtrar bienes por ID de oficina",
+                        "description": "Filtrar por ID de oficina",
                         "required": false,
                         "schema": {
                             "type": "integer"
@@ -386,7 +500,7 @@
                     {
                         "name": "page",
                         "in": "query",
-                        "description": "Número de página",
+                        "description": "Número de página para paginación",
                         "required": false,
                         "schema": {
                             "type": "integer"
@@ -395,7 +509,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Operación exitosa (Paginada)",
+                        "description": "Lista de bienes paginada",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -403,20 +517,43 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 10
+                                                    },
+                                                    "bien_codigo": {
+                                                        "type": "string",
+                                                        "example": "TI-2024-001"
+                                                    },
+                                                    "bien_descripcion": {
+                                                        "type": "string",
+                                                        "example": "Laptop Dell"
+                                                    },
+                                                    "oficina": {
+                                                        "description": "Datos de la oficina y ubicación",
+                                                        "type": "object"
+                                                    }
+                                                },
                                                 "type": "object"
                                             }
                                         },
                                         "current_page": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 1
                                         },
                                         "total": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 50
                                         }
                                     },
                                     "type": "object"
                                 }
                             }
                         }
+                    },
+                    "400": {
+                        "description": "Error: Falta filtro de búsqueda"
                     }
                 }
             },
@@ -424,8 +561,8 @@
                 "tags": [
                     "Bienes"
                 ],
-                "summary": "Crear bienes (soporta lotes)",
-                "description": "Crear Bienes (Lotes)s\n\nAlmacena uno o más bienes generando sus códigos automáticamente en secuencia.",
+                "summary": "Crear nuevos bienes (Lote o Unitario)",
+                "description": "Crea uno o varios bienes basados en el campo 'cantidad'. Genera códigos secuenciales automáticamente.",
                 "operationId": "f5e591e9cfd87228432b7d7179eaf975",
                 "requestBody": {
                     "required": true,
@@ -434,68 +571,52 @@
                             "schema": {
                                 "required": [
                                     "bien_descripcion",
+                                    "bien_valor_monetario",
                                     "bien_clave",
                                     "bien_y",
-                                    "cantidad",
-                                    "bien_valor_monetario"
+                                    "cantidad"
                                 ],
                                 "properties": {
                                     "id_oficina": {
                                         "type": "integer",
-                                        "example": 1
-                                    },
-                                    "bien_clave": {
-                                        "description": "Clave CAMB",
-                                        "type": "string",
-                                        "example": "I060200310"
-                                    },
-                                    "bien_y": {
-                                        "description": "Año de alta",
-                                        "type": "string",
-                                        "example": "2025"
-                                    },
-                                    "cantidad": {
-                                        "description": "Cantidad de bienes a generar",
-                                        "type": "integer",
-                                        "example": 1
+                                        "example": 5
                                     },
                                     "bien_descripcion": {
                                         "type": "string",
-                                        "example": "Silla ejecutiva"
-                                    },
-                                    "bien_modelo": {
-                                        "type": "string",
-                                        "example": "X-200"
-                                    },
-                                    "bien_serie": {
-                                        "type": "string",
-                                        "example": "SN123456"
+                                        "example": "Monitor 24 pulgadas"
                                     },
                                     "bien_valor_monetario": {
                                         "type": "number",
                                         "format": "float",
-                                        "example": 1500.5
+                                        "example": 3500.5
+                                    },
+                                    "bien_clave": {
+                                        "description": "Prefijo para el código",
+                                        "type": "string",
+                                        "example": "MOB-01"
+                                    },
+                                    "bien_y": {
+                                        "description": "Año del bien",
+                                        "type": "string",
+                                        "example": "2024"
+                                    },
+                                    "cantidad": {
+                                        "description": "Cuántos bienes idénticos crear",
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "bien_serie": {
+                                        "description": "Opcional, serie del fabricante",
+                                        "type": "string",
+                                        "example": "SN-123456"
                                     },
                                     "bien_marca": {
                                         "type": "string",
-                                        "example": "Herman Miller"
+                                        "example": "Samsung"
                                     },
-                                    "bien_estado": {
+                                    "bien_modelo": {
                                         "type": "string",
-                                        "example": "Bueno"
-                                    },
-                                    "bien_provedor": {
-                                        "type": "string"
-                                    },
-                                    "bien_numero_factura": {
-                                        "type": "string"
-                                    },
-                                    "bien_tipo_adquisicion": {
-                                        "type": "string"
-                                    },
-                                    "bien_fecha_alta": {
-                                        "type": "string",
-                                        "format": "date"
+                                        "example": "S24F350"
                                     }
                                 },
                                 "type": "object"
@@ -509,16 +630,27 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object"
-                                    }
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bienes registrados correctamente"
+                                        },
+                                        "cantidad": {
+                                            "type": "integer",
+                                            "example": 5
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "description": "Lista de bienes creados",
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
-                    },
-                    "500": {
-                        "description": "Error en la transacción"
                     }
                 }
             }
@@ -529,13 +661,12 @@
                     "Bienes"
                 ],
                 "summary": "Obtener detalles de un bien",
-                "description": "Ver Detalles del Bien\n\nMuestra la ficha técnica completa de un bien, incluyendo historial de resguardos, movimientos y traspasos.",
+                "description": "Retorna toda la información del bien, incluyendo historial formateado de resguardos y ubicaciones.",
                 "operationId": "3f79c4e3146f5e78284f2cceb4edaf65",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "ID del bien",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -544,10 +675,55 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Datos del bien",
+                        "description": "Detalles del bien",
                         "content": {
                             "application/json": {
                                 "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "bien_codigo": {
+                                            "type": "string",
+                                            "example": "TI-001"
+                                        },
+                                        "resguardos": {
+                                            "description": "Historial procesado de resguardos",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "resguardo_fecha_asignacion": {
+                                                        "type": "string",
+                                                        "format": "date"
+                                                    },
+                                                    "res_nombre": {
+                                                        "type": "string"
+                                                    },
+                                                    "res_apellidos": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "movimientos_bien": {
+                                            "description": "Historial de cambios de ubicación",
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "movimiento_fecha": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "destino_oficina": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
                                     "type": "object"
                                 }
                             }
@@ -558,49 +734,17 @@
                     }
                 }
             },
-            "delete": {
-                "tags": [
-                    "Bienes"
-                ],
-                "summary": "Eliminar un bien permanentemente",
-                "description": "Eliminar Bien",
-                "operationId": "6dc27a4c694b7cf46d60cf07164a9609",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Bien eliminado"
-                    },
-                    "409": {
-                        "description": "Conflicto: El bien tiene registros asociados"
-                    },
-                    "500": {
-                        "description": "Error del servidor"
-                    }
-                }
-            }
-        },
-        "/api/bienes/{id}": {
             "put": {
                 "tags": [
                     "Bienes"
                 ],
-                "summary": "Actualizar, Mover, Dar de Baja o Reactivar un Bien",
-                "description": "Este endpoint centraliza todas las modificaciones del Bien. El comportamiento depende del campo 'accion'.",
-                "operationId": "15eaaa742ddcb36b2ddc0ae460e1689f",
+                "summary": "Actualizar un bien (Polimórfico)",
+                "description": "Permite editar info, dar de baja, mover, reactivar o regresar resguardo basado en el campo 'accion'.",
+                "operationId": "ae3ee53dbca1e0294b45ce26f72916d1",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "ID del Bien",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -608,94 +752,43 @@
                     }
                 ],
                 "requestBody": {
-                    "description": "El cuerpo de la petición cambia según la acción deseada.",
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "accion"
+                                ],
                                 "properties": {
                                     "accion": {
-                                        "description": "Controlador de flujo. Si se omite, se asume 'editar_info'.",
+                                        "description": "Define qué lógica ejecutar",
                                         "type": "string",
                                         "enum": [
                                             "editar_info",
                                             "baja",
                                             "mover",
-                                            "reactivar"
+                                            "reactivar",
+                                            "regresar"
                                         ]
                                     },
-                                    "bien_marca": {
-                                        "description": "Solo para editar_info",
-                                        "type": "string"
-                                    },
-                                    "bien_modelo": {
-                                        "description": "Solo para editar_info",
-                                        "type": "string"
-                                    },
-                                    "motivo_baja": {
-                                        "description": "Requerido para accion='baja'",
-                                        "type": "string"
-                                    },
-                                    "fecha_baja": {
-                                        "description": "Requerido para accion='baja'",
-                                        "type": "string",
-                                        "format": "date"
-                                    },
                                     "nuevo_id_oficina": {
-                                        "description": "Requerido para accion='mover'",
+                                        "description": "Requerido para acciones 'mover' o 'reactivar'",
                                         "type": "integer"
                                     },
-                                    "nuevo_id_responsable": {
-                                        "description": "Opcional para accion='mover'",
-                                        "type": "integer"
-                                    },
-                                    "observaciones": {
-                                        "description": "Opcional para accion='mover'",
+                                    "bien_descripcion": {
+                                        "description": "Para editar_info",
                                         "type": "string"
                                     },
-                                    "id_oficina": {
-                                        "description": "Requerido para accion='reactivar'",
-                                        "type": "integer"
+                                    "bien_estado": {
+                                        "description": "Para editar_info",
+                                        "type": "string"
                                     },
                                     "id_resguardante": {
-                                        "description": "Opcional para accion='reactivar'",
+                                        "description": "Para editar_info",
                                         "type": "integer"
                                     }
                                 },
                                 "type": "object"
-                            },
-                            "examples": {
-                                "1_editar": {
-                                    "summary": "Caso 1: Editar Información (Default)",
-                                    "value": {
-                                        "accion": "editar_info",
-                                        "bien_marca": "Dell",
-                                        "bien_modelo": "Latitude 5420"
-                                    }
-                                },
-                                "2_baja": {
-                                    "summary": "Caso 2: Dar de Baja",
-                                    "value": {
-                                        "accion": "baja",
-                                        "fecha_baja": "2024-11-22"
-                                    }
-                                },
-                                "3_mover": {
-                                    "summary": "Caso 3: Mover (Traspaso)",
-                                    "value": {
-                                        "accion": "mover",
-                                        "nuevo_id_oficina": 15,
-                                        "nuevo_id_responsable": 4
-                                    }
-                                },
-                                "4_reactivar": {
-                                    "summary": "Caso 4: Reactivar",
-                                    "value": {
-                                        "accion": "reactivar",
-                                        "id_oficina": 10,
-                                        "id_resguardante": 45
-                                    }
-                                }
                             }
                         }
                     }
@@ -709,7 +802,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "El bien ha sido dado de baja correctamente"
+                                            "example": "Información actualizada"
                                         },
                                         "data": {
                                             "type": "object"
@@ -720,22 +813,52 @@
                             }
                         }
                     },
-                    "422": {
-                        "description": "Error de validación (faltan campos requeridos según la acción)"
+                    "403": {
+                        "description": "No tienes permisos para mover este bien"
+                    },
+                    "409": {
+                        "description": "Conflicto (ej. el bien tiene resguardo activo y no se puede mover)"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Eliminar un bien",
+                "operationId": "6dc27a4c694b7cf46d60cf07164a9609",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Bien eliminado correctamente"
+                    },
+                    "409": {
+                        "description": "No se puede eliminar (tiene registros asociados)"
+                    },
+                    "500": {
+                        "description": "Error del servidor"
                     }
                 }
             }
         },
-        "/api/bienes/comparar-inventario": {
+        "/bienes/comparar-inventario": {
             "post": {
                 "tags": [
                     "Inventario"
                 ],
-                "summary": "Comparar Inventario Físico vs Teórico",
-                "description": "Recibe el ID de una oficina y una lista de códigos escaneados (físicos). Retorna un reporte con faltantes, sobrantes y encontrados.",
-                "operationId": "056ac01a92fbc9a1b246fd597af3e4e6",
+                "summary": "Comparar inventario físico vs sistema",
+                "description": "Recibe una lista de códigos escaneados y devuelve encontrados, faltantes y sobrantes.",
+                "operationId": "f0587ae62c39fbc38cd3f8a4a303231e",
                 "requestBody": {
-                    "description": "Datos del levantamiento de inventario",
                     "required": true,
                     "content": {
                         "application/json": {
@@ -746,16 +869,14 @@
                                 ],
                                 "properties": {
                                     "id_oficina": {
-                                        "description": "ID de la oficina donde se escanea",
                                         "type": "integer",
-                                        "example": 15
+                                        "example": 10
                                     },
                                     "claves_escaneadas": {
-                                        "description": "Array con los códigos de barras leídos por la pistola/cámara",
                                         "type": "array",
                                         "items": {
                                             "type": "string",
-                                            "example": "I555-25-23-ABC"
+                                            "example": "TI-2024-001"
                                         }
                                     }
                                 },
@@ -766,7 +887,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Reporte generado correctamente",
+                        "description": "Resultado de la comparación",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -774,48 +895,27 @@
                                         "resumen": {
                                             "properties": {
                                                 "total_esperados": {
-                                                    "description": "Total en base de datos para esa oficina",
-                                                    "type": "integer",
-                                                    "example": 100
-                                                },
-                                                "total_escaneados": {
-                                                    "description": "Total de códigos enviados",
-                                                    "type": "integer",
-                                                    "example": 95
-                                                },
-                                                "conteo_encontrados": {
-                                                    "type": "integer",
-                                                    "example": 90
+                                                    "type": "integer"
                                                 },
                                                 "conteo_faltantes": {
-                                                    "description": "Están en BD pero no se escanearon",
-                                                    "type": "integer",
-                                                    "example": 10
-                                                },
-                                                "conteo_sobrantes": {
-                                                    "description": "Se escanearon pero no pertenecen a esta oficina",
-                                                    "type": "integer",
-                                                    "example": 5
+                                                    "type": "integer"
                                                 }
                                             },
                                             "type": "object"
                                         },
-                                        "encontrados": {
-                                            "description": "Lista completa de objetos encontrados",
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
                                         "faltantes": {
-                                            "description": "Lista completa de objetos faltantes",
                                             "type": "array",
                                             "items": {
                                                 "type": "object"
                                             }
                                         },
                                         "sobrantes": {
-                                            "description": "Lista de objetos sobrantes con su oficina real (si existe)",
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "encontrados": {
                                             "type": "array",
                                             "items": {
                                                 "type": "object"
@@ -826,24 +926,20 @@
                                 }
                             }
                         }
-                    },
-                    "422": {
-                        "description": "Error de validación en los datos enviados"
                     }
                 }
             }
         },
-        "/api/bienes/bajas": {
+        "/bienes/bajas": {
             "get": {
                 "tags": [
                     "Bienes"
                 ],
                 "summary": "Listar bienes dados de baja",
-                "description": "Obtiene el listado histórico de todos los bienes con estado 'Baja', incluyendo su oficina y resguardos asociados.",
-                "operationId": "ff7b124b708a1dc3324cdc800ae9f929",
+                "operationId": "2f2cb73b4e50a597dedba0c6bf6f255f",
                 "responses": {
                     "200": {
-                        "description": "Listado obtenido correctamente",
+                        "description": "Lista de bienes inactivos",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -853,40 +949,222 @@
                                             "example": true
                                         },
                                         "cantidad": {
-                                            "type": "integer",
-                                            "example": 15
+                                            "type": "integer"
                                         },
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "description": "Objeto Bien completo",
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    },
-                                                    "bien_codigo": {
-                                                        "type": "string",
-                                                        "example": "I0-23-XYZ"
-                                                    },
-                                                    "bien_estado": {
-                                                        "type": "string",
-                                                        "example": "Baja"
-                                                    },
-                                                    "oficina": {
-                                                        "description": "Relación con Oficina",
-                                                        "type": "object"
-                                                    },
-                                                    "resguardos": {
-                                                        "description": "Historial de resguardos",
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "object"
-                                                        }
-                                                    }
-                                                },
                                                 "type": "object"
                                             }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/bienes/buscar-codigo/{codigo}": {
+            "get": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Buscar bien por código exacto o serie",
+                "operationId": "b9d594f12333bd0d4fda6f43dc3761cb",
+                "parameters": [
+                    {
+                        "name": "codigo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Bien encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bien encontrado"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No se encontró ningún bien"
+                    },
+                    "409": {
+                        "description": "El bien existe pero está dado de BAJA"
+                    }
+                }
+            }
+        },
+        "/bienes/procesar-levantamiento": {
+            "post": {
+                "tags": [
+                    "Inventario"
+                ],
+                "summary": "Procesar resultados del levantamiento",
+                "description": "Actualiza masivamente los bienes encontrados, faltantes y sobrantes tras una auditoría.",
+                "operationId": "623b4f68fa836baf4210f468e6e909ca",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_oficina_levantamiento"
+                                ],
+                                "properties": {
+                                    "id_oficina_levantamiento": {
+                                        "type": "integer"
+                                    },
+                                    "encontrados": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "accion": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "ACTIVO",
+                                                        "EN_TRANSITO",
+                                                        "EXTRAVIADO"
+                                                    ]
+                                                },
+                                                "bien_descripcion": {
+                                                    "description": "Para corregir datos al vuelo",
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "faltantes": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "accion": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "EXTRAVIADO",
+                                                        "ACTIVO"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "sobrantes": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "accion": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "ACTUALIZAR_AQUI",
+                                                        "REGRESAR_ORIGEN"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Levantamiento procesado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en la transacción"
+                    }
+                }
+            }
+        },
+        "/bienes/{id}/foto": {
+            "post": {
+                "tags": [
+                    "Bienes"
+                ],
+                "summary": "Subir foto del bien",
+                "operationId": "3bfa8f785716b517f6f17fc558b7b90f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "imagen": {
+                                        "description": "Archivo de imagen (jpg, png)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Imagen actualizada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "foto_url": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -1139,27 +1417,27 @@
                 }
             }
         },
-        "/dashboard/stats": {
+        "/dashboard": {
             "get": {
                 "tags": [
                     "Dashboard"
                 ],
-                "summary": "Obtener estadísticas del Dashboard",
-                "description": "Obtener Estadísticas Generales\n\nRetorna un resumen completo para el panel de control: conteos totales, \núltimos registros, notificaciones pendientes y datos para gráficas.",
-                "operationId": "28b3b6a9ba335d5d4eb2c607ce279eae",
+                "summary": "Obtener métricas y datos del Dashboard",
+                "description": "Retorna todos los contadores, últimas actividades, notificaciones pendientes y datos para gráficas en una sola llamada.",
+                "operationId": "a92dff3ea055c0a594f425e852840a68",
                 "responses": {
                     "200": {
-                        "description": "Datos del dashboard recuperados exitosamente",
+                        "description": "Datos cargados correctamente",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "stats": {
-                                            "description": "Contadores generales del sistema",
+                                            "description": "Contadores generales para los widgets superiores",
                                             "properties": {
                                                 "bienes_registrados": {
                                                     "type": "integer",
-                                                    "example": 20213
+                                                    "example": 1250
                                                 },
                                                 "gestores_asignados": {
                                                     "type": "integer",
@@ -1171,7 +1449,7 @@
                                                 },
                                                 "resguardantes_registrados": {
                                                     "type": "integer",
-                                                    "example": 150
+                                                    "example": 45
                                                 },
                                                 "departamentos_totales": {
                                                     "type": "integer",
@@ -1179,17 +1457,17 @@
                                                 },
                                                 "oficinas_totales": {
                                                     "type": "integer",
-                                                    "example": 45
+                                                    "example": 30
                                                 }
                                             },
                                             "type": "object"
                                         },
                                         "ultimo_bien_registrado": {
-                                            "description": "Información breve del último bien dado de alta",
+                                            "description": "Información del último lote o bien dado de alta",
                                             "properties": {
                                                 "nombre": {
                                                     "type": "string",
-                                                    "example": "Laptop HP ProBook"
+                                                    "example": "Laptops Dell Latitude"
                                                 },
                                                 "cantidad": {
                                                     "type": "integer",
@@ -1200,11 +1478,11 @@
                                             "nullable": true
                                         },
                                         "ultima_transferencia": {
-                                            "description": "Información breve del último traspaso completado",
+                                            "description": "Último traspaso aprobado",
                                             "properties": {
                                                 "bien_nombre": {
                                                     "type": "string",
-                                                    "example": "Silla Ejecutiva"
+                                                    "example": "Proyector Epson"
                                                 },
                                                 "realizada_por": {
                                                     "type": "string",
@@ -1215,23 +1493,23 @@
                                             "nullable": true
                                         },
                                         "notificaciones": {
-                                            "description": "La solicitud de traspaso pendiente más reciente (para el widget de alerta)",
+                                            "description": "Última solicitud de traspaso pendiente (para alerta)",
                                             "properties": {
                                                 "id_traspaso": {
                                                     "type": "integer",
-                                                    "example": 35
+                                                    "example": 205
                                                 },
                                                 "bien_nombre": {
                                                     "type": "string",
-                                                    "example": "Monitor Dell"
+                                                    "example": "Monitor Samsung"
                                                 },
                                                 "emisor": {
                                                     "type": "string",
-                                                    "example": "Ana López"
+                                                    "example": "Ana García"
                                                 },
                                                 "receptor": {
                                                     "type": "string",
-                                                    "example": "Carlos Ruiz"
+                                                    "example": "Carlos López"
                                                 }
                                             },
                                             "type": "object",
@@ -1244,11 +1522,11 @@
                                                 "properties": {
                                                     "tipo": {
                                                         "type": "string",
-                                                        "example": "Asignación"
+                                                        "example": "MOVIMIENTO"
                                                     },
                                                     "bien_involucrado": {
                                                         "type": "string",
-                                                        "example": "Teclado USB"
+                                                        "example": "Silla Ejecutiva"
                                                     },
                                                     "gestor_encargado": {
                                                         "type": "string",
@@ -1256,28 +1534,28 @@
                                                     },
                                                     "resguardante_responsable": {
                                                         "type": "string",
-                                                        "example": "Pedro Gomez"
+                                                        "example": "Roberto Gómez"
                                                     },
                                                     "area": {
                                                         "type": "string",
-                                                        "example": "Sistemas"
+                                                        "example": "Recursos Humanos"
                                                     }
                                                 },
                                                 "type": "object"
                                             }
                                         },
                                         "estados_bienes": {
-                                            "description": "Datos para la gráfica de pastel (conteo por estado)",
+                                            "description": "Datos para la gráfica de pastel (Totales por estado)",
                                             "type": "array",
                                             "items": {
                                                 "properties": {
                                                     "bien_estado": {
                                                         "type": "string",
-                                                        "example": "Bueno"
+                                                        "example": "Activo"
                                                     },
                                                     "total": {
                                                         "type": "integer",
-                                                        "example": 150
+                                                        "example": 850
                                                     }
                                                 },
                                                 "type": "object"
@@ -1288,9 +1566,6 @@
                                 }
                             }
                         }
-                    },
-                    "500": {
-                        "description": "Error del servidor"
                     }
                 }
             }
@@ -2069,6 +2344,629 @@
                 }
             }
         },
+        "/movimientos": {
+            "get": {
+                "tags": [
+                    "Movimientos"
+                ],
+                "summary": "Listar historial de movimientos",
+                "description": "Obtiene el historial de movimientos (altas, traslados, bajas) con filtros avanzados de búsqueda, tipo y fecha.",
+                "operationId": "203898eae924d33faeb2730931040538",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Búsqueda general: Coincidencia en descripción del bien, código del bien o nombre del usuario que realizó el movimiento.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "tipo",
+                        "in": "query",
+                        "description": "Filtrar por tipo de movimiento (ej. 'ALTA', 'MOVIMIENTO', 'BAJA')",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "description": "Fecha inicial (YYYY-MM-DD) para filtrar rango",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "description": "Fecha final (YYYY-MM-DD) para filtrar rango",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página para paginación",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de movimientos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "current_page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 101
+                                                    },
+                                                    "movimiento_tipo": {
+                                                        "type": "string",
+                                                        "example": "MOVIMIENTO"
+                                                    },
+                                                    "movimiento_fecha": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "example": "2025-10-20T14:30:00.000000Z"
+                                                    },
+                                                    "movimiento_observaciones": {
+                                                        "type": "string",
+                                                        "example": "Traslado solicitado por cambio de oficina"
+                                                    },
+                                                    "bien": {
+                                                        "description": "Información del bien afectado",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 50
+                                                            },
+                                                            "bien_codigo": {
+                                                                "type": "string",
+                                                                "example": "PC-004"
+                                                            },
+                                                            "bien_descripcion": {
+                                                                "type": "string",
+                                                                "example": "Monitor Dell 24"
+                                                            },
+                                                            "oficina": {
+                                                                "description": "Oficina administrativa original",
+                                                                "properties": {
+                                                                    "nombre": {
+                                                                        "type": "string",
+                                                                        "example": "Dirección de Finanzas"
+                                                                    }
+                                                                },
+                                                                "type": "object",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "usuario_origen": {
+                                                        "description": "Usuario que realizó la acción",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "usuario_nombre": {
+                                                                "type": "string",
+                                                                "example": "Admin Sistema"
+                                                            }
+                                                        },
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    },
+                                                    "departamento": {
+                                                        "description": "Destino físico (Departamento/Ubicación)",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 12
+                                                            },
+                                                            "dep_nombre": {
+                                                                "type": "string",
+                                                                "example": "Almacén General"
+                                                            }
+                                                        },
+                                                        "type": "object",
+                                                        "nullable": true
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 150
+                                        },
+                                        "per_page": {
+                                            "type": "integer",
+                                            "example": 20
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/oficinas": {
+            "get": {
+                "tags": [
+                    "Oficinas"
+                ],
+                "summary": "Listar oficinas",
+                "description": "Obtiene un listado paginado de oficinas, incluyendo la relación con edificio.",
+                "operationId": "aa56303052cb9c6a81c29a8dfad3c572",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Buscar por nombre o referencia",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Número de página",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Listado de oficinas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "nombre": {
+                                                        "type": "string",
+                                                        "example": "Oficina Administrativa"
+                                                    },
+                                                    "ofi_codigo": {
+                                                        "type": "string",
+                                                        "example": "ADM-001"
+                                                    },
+                                                    "referencia": {
+                                                        "type": "string",
+                                                        "example": "Primer piso, puerta izquierda"
+                                                    },
+                                                    "edificio": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 5
+                                                            },
+                                                            "nombre": {
+                                                                "type": "string",
+                                                                "example": "Edificio Central"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 50
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Oficinas"
+                ],
+                "summary": "Crear nueva oficina",
+                "operationId": "f79b7c423ac59ceeb29666fc39769c2d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_departamento",
+                                    "id_edificio",
+                                    "ofi_codigo",
+                                    "nombre"
+                                ],
+                                "properties": {
+                                    "id_departamento": {
+                                        "description": "ID del departamento al que pertenece",
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "id_edificio": {
+                                        "description": "ID del edificio físico",
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "ofi_codigo": {
+                                        "description": "Código único de la oficina",
+                                        "type": "string",
+                                        "example": "OF-202"
+                                    },
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Sala de Juntas B"
+                                    },
+                                    "referencia": {
+                                        "type": "string",
+                                        "example": "Junto al elevador"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Oficina creada exitosamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 15
+                                        },
+                                        "nombre": {
+                                            "type": "string",
+                                            "example": "Sala de Juntas B"
+                                        },
+                                        "departamento": {
+                                            "description": "Objeto departamento cargado",
+                                            "type": "object"
+                                        },
+                                        "edificio": {
+                                            "description": "Objeto edificio cargado",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación (ej. código duplicado)"
+                    }
+                }
+            }
+        },
+        "/oficinas/{id}": {
+            "get": {
+                "tags": [
+                    "Oficinas"
+                ],
+                "summary": "Obtener detalles de una oficina",
+                "operationId": "edf3de5b963b396a771df9133a991ef1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Información de la oficina",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "nombre": {
+                                            "type": "string",
+                                            "example": "Oficina Principal"
+                                        },
+                                        "edificio": {
+                                            "description": "Datos del edificio",
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Oficina no encontrada"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Oficinas"
+                ],
+                "summary": "Actualizar oficina",
+                "operationId": "a4b5752fe04912be2988bbab8f960a1d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "id_departamento",
+                                    "id_edificio",
+                                    "ofi_codigo",
+                                    "nombre"
+                                ],
+                                "properties": {
+                                    "id_departamento": {
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "id_edificio": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "ofi_codigo": {
+                                        "type": "string",
+                                        "example": "OF-202-UPDATED"
+                                    },
+                                    "nombre": {
+                                        "type": "string",
+                                        "example": "Sala de Juntas Actualizada"
+                                    },
+                                    "referencia": {
+                                        "type": "string",
+                                        "example": "Nueva referencia"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Oficina actualizada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 15
+                                        },
+                                        "nombre": {
+                                            "type": "string",
+                                            "example": "Sala de Juntas Actualizada"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Oficinas"
+                ],
+                "summary": "Eliminar oficina",
+                "description": "Elimina la oficina solo si no tiene bienes asociados.",
+                "operationId": "89a1d1fc4cabf1504afb8e549e658849",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Eliminada correctamente (No Content)"
+                    },
+                    "409": {
+                        "description": "Conflicto: La oficina tiene bienes asignados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No se puede eliminar la oficina. Aún tiene bienes asociados."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Oficina no encontrada"
+                    }
+                }
+            }
+        },
+        "/oficinas/{id}/bienes": {
+            "get": {
+                "tags": [
+                    "Oficinas"
+                ],
+                "summary": "Obtener bienes de una oficina",
+                "description": "Lista paginada de bienes asignados a esta oficina con filtros avanzados.",
+                "operationId": "8f8d771eeada46c4115e10e92d127f5b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la oficina",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Buscar bienes por código, serie o descripción dentro de la oficina",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "description": "Filtrar por estado del bien (ej. 'Activo', 'Baja')",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sin_resguardo",
+                        "in": "query",
+                        "description": "Si es 'true', devuelve solo bienes que no tienen dueño asignado",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de bienes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 101
+                                                    },
+                                                    "bien_codigo": {
+                                                        "type": "string",
+                                                        "example": "C-500"
+                                                    },
+                                                    "bien_descripcion": {
+                                                        "type": "string",
+                                                        "example": "Silla Ergonómica"
+                                                    },
+                                                    "bien_estado": {
+                                                        "type": "string",
+                                                        "example": "Activo"
+                                                    },
+                                                    "id_resguardante": {
+                                                        "description": "ID del dueño actual (null si está libre)",
+                                                        "type": "integer",
+                                                        "nullable": true
+                                                    },
+                                                    "ubicacionActual": {
+                                                        "properties": {
+                                                            "nombre": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "resguardos": {
+                                                        "description": "Historial breve (último resguardo)",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 25
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/formularios/oficinas": {
             "get": {
                 "tags": [
@@ -2147,6 +3045,614 @@
                     },
                     "401": {
                         "description": "No autenticado"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Crear un nuevo resguardante",
+                "operationId": "7b1aeaafcf8a932c8181aa46e648ae07",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "res_nombre",
+                                    "res_apellidos",
+                                    "res_puesto",
+                                    "res_departamento"
+                                ],
+                                "properties": {
+                                    "res_nombre": {
+                                        "type": "string",
+                                        "example": "Juan"
+                                    },
+                                    "res_apellidos": {
+                                        "type": "string",
+                                        "example": "Pérez"
+                                    },
+                                    "res_puesto": {
+                                        "type": "string",
+                                        "example": "Analista"
+                                    },
+                                    "res_departamento": {
+                                        "description": "ID del departamento",
+                                        "type": "integer",
+                                        "example": 5
+                                    },
+                                    "res_rfc": {
+                                        "type": "string",
+                                        "example": "ABCD800101XYZ"
+                                    },
+                                    "res_curp": {
+                                        "type": "string",
+                                        "example": "ABCD800101HDFRRN01"
+                                    },
+                                    "res_telefono": {
+                                        "type": "string",
+                                        "example": "5551234567"
+                                    },
+                                    "id_oficina": {
+                                        "type": "integer",
+                                        "example": 2,
+                                        "nullable": true
+                                    },
+                                    "res_correo": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "juan@example.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Resguardante creado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Resguardante"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación"
+                    }
+                }
+            }
+        },
+        "/resguardantes/{id}": {
+            "get": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Obtener detalles de un resguardante",
+                "operationId": "4841a7421edabbb7c08fb15dacb70f00",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detalles del resguardante con relaciones",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Resguardante"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No encontrado"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Actualizar resguardante",
+                "description": "Actualiza datos personales y sincroniza correo/nombre con el usuario de sistema asociado si existe.",
+                "operationId": "61a92d2ad7eeef57e54c6925320ff494",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "res_nombre",
+                                    "res_apellidos",
+                                    "res_puesto",
+                                    "res_departamento"
+                                ],
+                                "properties": {
+                                    "res_nombre": {
+                                        "type": "string"
+                                    },
+                                    "res_apellidos": {
+                                        "type": "string"
+                                    },
+                                    "res_puesto": {
+                                        "type": "string"
+                                    },
+                                    "res_departamento": {
+                                        "type": "integer"
+                                    },
+                                    "id_oficina": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "res_rfc": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "res_curp": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "res_correo": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "usuario_id_rol": {
+                                        "description": "ID del rol a actualizar en el usuario asociado",
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Resguardante actualizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Resguardante"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error en transacción"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Eliminar resguardante",
+                "description": "Elimina al resguardante y su usuario asociado. Falla si tiene bienes asignados.",
+                "operationId": "210a562bbd45ea98d81a8442e8582b85",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Eliminado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto: Tiene bienes asignados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/resguardantes/{id}/usuario": {
+            "post": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Crear usuario de sistema para un resguardante",
+                "operationId": "20a353dd4d21aa14d65f04e65b24cf0b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "usuario_pass",
+                                    "usuario_correo"
+                                ],
+                                "properties": {
+                                    "usuario_pass": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "minLength": 8
+                                    },
+                                    "usuario_correo": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "usuario_id_rol": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Usuario creado y vinculado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Resguardante"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "El resguardante ya tiene usuario"
+                    }
+                }
+            }
+        },
+        "/resguardantes/{id}/bienes": {
+            "get": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Listar bienes asignados a un resguardante (Admin)",
+                "operationId": "f394657fd6c3a95030899b09c22b8a30",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de bienes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Bien"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/oficinas/{id}/resguardantes": {
+            "get": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Listar resguardantes por oficina",
+                "operationId": "f9830807db4fc6c6790226b901103006",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID de la oficina",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de resguardantes en la oficina",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Resguardante"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Oficina no encontrada"
+                    }
+                }
+            }
+        },
+        "/mis-bienes": {
+            "get": {
+                "tags": [
+                    "Perfil Resguardante"
+                ],
+                "summary": "Obtener mis bienes (Perfil Resguardante)",
+                "description": "Lista paginada de los bienes asignados al usuario autenticado.",
+                "operationId": "b5ed5b07536167187b981efc7a50a576",
+                "responses": {
+                    "200": {
+                        "description": "Mis bienes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Bien"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Usuario sin perfil de resguardante"
+                    }
+                }
+            }
+        },
+        "/resguardantes/search": {
+            "get": {
+                "tags": [
+                    "Resguardantes"
+                ],
+                "summary": "Búsqueda rápida de resguardantes (Autocomplete)",
+                "description": "Busca resguardantes por nombre o correo (usuario). Excluye al usuario actual.",
+                "operationId": "c4832b29aad5c5107d900aa9bbdc252c",
+                "parameters": [
+                    {
+                        "name": "query",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "minLength": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Resultados simplificados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "nombre": {
+                                                "type": "string"
+                                            },
+                                            "correo": {
+                                                "type": "string"
+                                            },
+                                            "cargo": {
+                                                "type": "string"
+                                            },
+                                            "tiene_usuario": {
+                                                "type": "boolean"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/mis-movimientos": {
+            "get": {
+                "tags": [
+                    "Perfil Resguardante"
+                ],
+                "summary": "Obtener mis movimientos físicos",
+                "operationId": "64f4f9e6917d632148073fc84f6c8dc6",
+                "responses": {
+                    "200": {
+                        "description": "Historial de movimientos iniciados por mi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MovimientoBien"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/mis-transferencias": {
+            "get": {
+                "tags": [
+                    "Perfil Resguardante"
+                ],
+                "summary": "Obtener mis traspasos (Origen/Destino)",
+                "operationId": "6991e35b0a268f0511e43df0a681d142",
+                "responses": {
+                    "200": {
+                        "description": "Historial de solicitudes de traspaso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Traspaso"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/resguardante/dashboard": {
+            "get": {
+                "tags": [
+                    "Perfil Resguardante"
+                ],
+                "summary": "Dashboard del Resguardante",
+                "description": "Métricas rápidas y últimos movimientos para la pantalla de inicio del app móvil.",
+                "operationId": "63e337a3c8ccb43eab2f9742e3ce3b47",
+                "responses": {
+                    "200": {
+                        "description": "Datos del dashboard",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "contadores": {
+                                            "properties": {
+                                                "bienes": {
+                                                    "type": "integer"
+                                                },
+                                                "movimientos": {
+                                                    "type": "integer"
+                                                },
+                                                "transferencias": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "info": {
+                                            "properties": {
+                                                "oficina": {
+                                                    "type": "string"
+                                                },
+                                                "departamento": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "ultimos_movimientos": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MovimientoBien"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Perfil no encontrado"
                     }
                 }
             }
@@ -2289,26 +3795,31 @@
                 "tags": [
                     "Traspasos"
                 ],
-                "summary": "Listar y filtrar traspasos",
-                "description": "Listar Solicitudes de Traspaso\n\nObtiene una lista paginada de las solicitudes. Permite filtrar por estado y buscar por nombre del bien o solicitante.",
+                "summary": "Listar solicitudes de traspaso",
+                "description": "Obtiene el historial de solicitudes de traspaso (pendientes, aprobadas, rechazadas) con filtros.",
                 "operationId": "15b23ff06d3105a724f263cd2cb23a52",
                 "parameters": [
                     {
-                        "name": "estado",
+                        "name": "search",
                         "in": "query",
-                        "description": "Filtrar por estado (ej. Pendiente, Aprobado, Rechazado)",
+                        "description": "Buscar por descripción del bien o nombre del solicitante",
                         "required": false,
                         "schema": {
                             "type": "string"
                         }
                     },
                     {
-                        "name": "search",
+                        "name": "estado",
                         "in": "query",
-                        "description": "Buscar por nombre del bien o nombre del usuario solicitante",
+                        "description": "Filtrar por estado (Pendiente, Aprobada, Rechazada)",
                         "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                                "Pendiente",
+                                "Aprobada",
+                                "Rechazada"
+                            ]
                         }
                     },
                     {
@@ -2331,14 +3842,52 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 55
+                                                    },
+                                                    "traspaso_estado": {
+                                                        "type": "string",
+                                                        "example": "Pendiente"
+                                                    },
+                                                    "traspaso_fecha_solicitud": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "bien": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "bien_descripcion": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
+                                                    "resguardanteOrigen": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer"
+                                                            },
+                                                            "res_nombre": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
                                                 "type": "object"
                                             }
                                         },
                                         "current_page": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 1
                                         },
                                         "total": {
-                                            "type": "integer"
+                                            "type": "integer",
+                                            "example": 20
                                         }
                                     },
                                     "type": "object"
@@ -2352,8 +3901,8 @@
                 "tags": [
                     "Traspasos"
                 ],
-                "summary": "Crear nueva solicitud",
-                "description": "Crear Solicitud de Traspaso\n\nCrea una nueva solicitud de traspaso y emite un evento WebSocket en tiempo real.",
+                "summary": "Solicitar un nuevo traspaso",
+                "description": "Crea una solicitud para transferir un bien del usuario actual a otro resguardante.",
                 "operationId": "c26f0ee0f06dc1aad2ebee4cdb839d23",
                 "requestBody": {
                     "required": true,
@@ -2366,19 +3915,19 @@
                                 ],
                                 "properties": {
                                     "traspaso_id_bien": {
-                                        "description": "ID del bien a traspasar",
+                                        "description": "ID del bien a transferir",
                                         "type": "integer",
-                                        "example": 1
+                                        "example": 101
                                     },
                                     "traspaso_id_usuario_destino": {
-                                        "description": "ID del usuario receptor",
+                                        "description": "ID del Resguardante destinatario",
                                         "type": "integer",
-                                        "example": 5
+                                        "example": 15
                                     },
                                     "traspaso_observaciones": {
-                                        "description": "Motivo o detalles",
                                         "type": "string",
-                                        "example": "Cambio de oficina"
+                                        "example": "El monitor se entrega en buen estado",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -2392,16 +3941,42 @@
                         "content": {
                             "application/json": {
                                 "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 56
+                                        },
+                                        "traspaso_estado": {
+                                            "type": "string",
+                                            "example": "Pendiente"
+                                        }
+                                    },
                                     "type": "object"
                                 }
                             }
                         }
                     },
+                    "403": {
+                        "description": "Prohibido: Usuario sin perfil de resguardante"
+                    },
                     "422": {
-                        "description": "Error de validación"
+                        "description": "Error de validación (ej. intentar transferirse a sí mismo)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "No puedes traspasar un bien a ti mismo."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "500": {
-                        "description": "Error del servidor o transacción fallida"
+                        "description": "Error del servidor al procesar la transacción"
                     }
                 }
             }
@@ -2411,14 +3986,13 @@
                 "tags": [
                     "Traspasos"
                 ],
-                "summary": "Obtener detalles de una solicitud",
-                "description": "Ver Detalles de Solicitud\n\nMuestra la información completa de una solicitud, incluyendo detalles profundos del origen y destino (Resguardante, Depto, Oficina).",
+                "summary": "Ver detalles de un traspaso",
+                "description": "Muestra la información completa del traspaso, incluyendo datos jerárquicos de origen y destino (Depto -> Área -> Edificio).",
                 "operationId": "58953d484fd3fbe42fd44513f0633b8d",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "ID del traspaso",
                         "required": true,
                         "schema": {
                             "type": "integer"
@@ -2427,10 +4001,28 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Datos del traspaso con relaciones",
+                        "description": "Detalles encontrados",
                         "content": {
                             "application/json": {
                                 "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 55
+                                        },
+                                        "bien": {
+                                            "description": "Datos del bien",
+                                            "type": "object"
+                                        },
+                                        "resguardanteOrigen": {
+                                            "description": "Datos completos del emisor con depto/area/edificio",
+                                            "type": "object"
+                                        },
+                                        "resguardanteDestino": {
+                                            "description": "Datos completos del receptor con depto/area/edificio",
+                                            "type": "object"
+                                        }
+                                    },
                                     "type": "object"
                                 }
                             }
@@ -2445,8 +4037,8 @@
                 "tags": [
                     "Traspasos"
                 ],
-                "summary": "Aprobar o Rechazar solicitud",
-                "description": "Actualizar Estado de Solicitud\n\nPermite Aprobar o Rechazar una solicitud. Emite un evento WebSocket al cambiar el estado.",
+                "summary": "Aprobar o Rechazar traspaso",
+                "description": "Procesa la solicitud. Si se aprueba, cambia automáticamente el dueño del bien y actualiza los registros de resguardo.",
                 "operationId": "a96c5df706b770bf80dc88dec5d87a41",
                 "parameters": [
                     {
@@ -2468,12 +4060,12 @@
                                 ],
                                 "properties": {
                                     "estado": {
+                                        "description": "Nuevo estado de la solicitud",
                                         "type": "string",
                                         "enum": [
-                                            "Aprobado",
-                                            "Rechazado"
-                                        ],
-                                        "example": "Aprobado"
+                                            "Aprobada",
+                                            "Rechazada"
+                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -2483,45 +4075,904 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Estado actualizado"
+                        "description": "Solicitud procesada correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Solicitud Aprobada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
-                    "422": {
-                        "description": "Error de validación (estado inválido)"
+                    "400": {
+                        "description": "Error: La solicitud ya fue procesada anteriormente"
                     },
                     "500": {
-                        "description": "Error del servidor"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Traspasos"
-                ],
-                "summary": "Eliminar solicitud (No implementado)",
-                "description": "Eliminar Solicitud",
-                "operationId": "589f4c53dd8b9145b270d40933417eac",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Operación exitosa (si se implementa)"
+                        "description": "Error crítico al procesar la transacción"
                     }
                 }
             }
         }
     },
+    "components": {
+        "schemas": {
+            "Area": {
+                "title": "Area",
+                "description": "Modelo de Área",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "area_nombre": {
+                        "type": "string",
+                        "example": "Recursos Humanos"
+                    },
+                    "area_codigo": {
+                        "type": "string",
+                        "example": "RH-001"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Bien": {
+                "title": "Bien (Activo Fijo)",
+                "description": "Modelo principal que representa un activo fijo del inventario.",
+                "required": [
+                    "bien_codigo",
+                    "bien_descripcion",
+                    "bien_valor_monetario",
+                    "bien_clave"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del bien",
+                        "type": "integer",
+                        "format": "int64",
+                        "example": 101
+                    },
+                    "bien_codigo": {
+                        "description": "Código único de inventario",
+                        "type": "string",
+                        "example": "TI-2024-005-01"
+                    },
+                    "bien_clave": {
+                        "description": "Clave de catálogo (prefijo)",
+                        "type": "string",
+                        "example": "51101-001"
+                    },
+                    "bien_descripcion": {
+                        "description": "Descripción detallada",
+                        "type": "string",
+                        "example": "Laptop Dell Latitude 5420"
+                    },
+                    "bien_caracteristicas": {
+                        "description": "Detalles técnicos adicionales",
+                        "type": "string",
+                        "example": "16GB RAM, 512GB SSD",
+                        "nullable": true
+                    },
+                    "bien_marca": {
+                        "type": "string",
+                        "example": "Dell",
+                        "nullable": true
+                    },
+                    "bien_modelo": {
+                        "type": "string",
+                        "example": "Latitude 5420",
+                        "nullable": true
+                    },
+                    "bien_serie": {
+                        "description": "Número de serie del fabricante",
+                        "type": "string",
+                        "example": "8H2J9K1",
+                        "nullable": true
+                    },
+                    "bien_estado": {
+                        "description": "Estado actual del bien",
+                        "type": "string",
+                        "enum": [
+                            "Activo",
+                            "Baja",
+                            "En tránsito",
+                            "Extraviado"
+                        ],
+                        "example": "Activo"
+                    },
+                    "bien_valor_monetario": {
+                        "description": "Costo del bien",
+                        "type": "number",
+                        "format": "float",
+                        "example": 25000.5
+                    },
+                    "bien_tipo_adquisicion": {
+                        "description": "Forma de compra",
+                        "type": "string",
+                        "example": "Licitación",
+                        "nullable": true
+                    },
+                    "bien_provedor": {
+                        "type": "string",
+                        "example": "Proveedores del Norte S.A.",
+                        "nullable": true
+                    },
+                    "bien_numero_factura": {
+                        "type": "string",
+                        "example": "FAC-998877",
+                        "nullable": true
+                    },
+                    "bien_fecha_alta": {
+                        "description": "Fecha de ingreso al inventario",
+                        "type": "string",
+                        "format": "date",
+                        "example": "2024-01-15",
+                        "nullable": true
+                    },
+                    "bien_foto": {
+                        "description": "Ruta relativa de la imagen almacenada",
+                        "type": "string",
+                        "example": "bienes/foto_101.jpg",
+                        "nullable": true
+                    },
+                    "foto_url": {
+                        "description": "URL pública completa de la imagen (Appended Attribute)",
+                        "type": "string",
+                        "example": "http://mi-api.com/storage/bienes/foto_101.jpg",
+                        "nullable": true
+                    },
+                    "id_oficina": {
+                        "description": "ID de la oficina administrativa de origen",
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "id_resguardante": {
+                        "description": "ID del resguardante (dueño) actual",
+                        "type": "integer",
+                        "example": 12,
+                        "nullable": true
+                    },
+                    "bien_ubicacion_actual": {
+                        "description": "ID de la oficina donde se encuentra físicamente",
+                        "type": "integer",
+                        "example": 8,
+                        "nullable": true
+                    },
+                    "bien_y": {
+                        "description": "Año del ejercicio",
+                        "type": "string",
+                        "example": "2024",
+                        "nullable": true
+                    },
+                    "bien_secuencia": {
+                        "description": "Número consecutivo dentro del lote",
+                        "type": "string",
+                        "example": "00001",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "description": "Fecha de creación en sistema",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Última actualización",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "deleted_at": {
+                        "description": "Fecha de eliminación (SoftDelete)",
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object",
+                "xml": {
+                    "name": "Bien"
+                }
+            },
+            "CatalogoCambCucop": {
+                "title": "Catálogo CAMB - CUCOP",
+                "description": "Catálogo de claves que relaciona el CAMB con la partida específica y el CUCOP.",
+                "required": [
+                    "clave_cucop",
+                    "partida_especifica",
+                    "descripcion",
+                    "camb"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID autoincremental",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "clave_cucop": {
+                        "description": "Clave Única de las Contrataciones Públicas",
+                        "type": "string",
+                        "example": "21100001"
+                    },
+                    "partida_especifica": {
+                        "description": "Partida presupuestal específica",
+                        "type": "string",
+                        "example": "21101"
+                    },
+                    "descripcion": {
+                        "description": "Descripción del bien o servicio en el catálogo",
+                        "type": "string",
+                        "example": "Materiales y útiles de oficina"
+                    },
+                    "camb": {
+                        "description": "Clave de Administración de Bienes (CAMB)",
+                        "type": "string",
+                        "example": "I51101-0001"
+                    },
+                    "created_at": {
+                        "description": "Fecha de creación",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Fecha de última actualización",
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "Departamento": {
+                "title": "Departamento",
+                "description": "Unidad administrativa que pertenece a un Área y contiene Oficinas.",
+                "required": [
+                    "dep_nombre",
+                    "dep_codigo",
+                    "id_area"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del departamento",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "dep_nombre": {
+                        "description": "Nombre del departamento",
+                        "type": "string",
+                        "example": "Recursos Humanos"
+                    },
+                    "dep_codigo": {
+                        "description": "Clave o código interno",
+                        "type": "string",
+                        "example": "RH-001"
+                    },
+                    "dep_resposable": {
+                        "description": "Nombre del responsable del departamento",
+                        "type": "string",
+                        "example": "Lic. María González"
+                    },
+                    "dep_correo_institucional": {
+                        "description": "Correo de contacto oficial",
+                        "type": "string",
+                        "format": "email",
+                        "example": "rh@institucion.gob.mx"
+                    },
+                    "id_area": {
+                        "description": "ID del Área superior",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "area": {
+                        "$ref": "#/components/schemas/Area"
+                    }
+                },
+                "type": "object"
+            },
+            "Edificio": {
+                "title": "Edificio",
+                "description": "Ubicación física principal (estructura) que agrupa Áreas y Oficinas.",
+                "required": [
+                    "nombre"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del edificio",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "nombre": {
+                        "description": "Nombre o identificación del edificio",
+                        "type": "string",
+                        "example": "Torre Administrativa A"
+                    },
+                    "created_at": {
+                        "description": "Fecha de creación",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Fecha de última actualización",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "areas": {
+                        "description": "Lista de áreas asociadas (si se carga la relación)",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Area"
+                        }
+                    },
+                    "oficinas": {
+                        "description": "Lista de oficinas físicas en este edificio (si se carga la relación)",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Oficina"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "Gestor": {
+                "title": "Gestor",
+                "description": "Perfil administrativo encargado de realizar movimientos y gestión de bienes.",
+                "required": [
+                    "gestor_nombre",
+                    "gestor_apellidos",
+                    "gestor_correo",
+                    "gestor_id_usuario"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del gestor",
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "gestor_nombre": {
+                        "description": "Nombre(s)",
+                        "type": "string",
+                        "example": "Roberto"
+                    },
+                    "gestor_apellidos": {
+                        "description": "Apellidos",
+                        "type": "string",
+                        "example": "Martínez"
+                    },
+                    "gestor_correo": {
+                        "description": "Correo electrónico de contacto",
+                        "type": "string",
+                        "format": "email",
+                        "example": "roberto.mtz@empresa.com"
+                    },
+                    "gestor_id_usuario": {
+                        "description": "ID del usuario de sistema (login) asociado",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "created_at": {
+                        "description": "Fecha de creación",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Fecha de actualización",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "usuario": {
+                        "$ref": "#/components/schemas/Usuario"
+                    }
+                },
+                "type": "object"
+            },
+            "MovimientoBien": {
+                "title": "Movimiento de Bien",
+                "description": "Registro histórico de una acción realizada sobre un bien (Alta, Baja, Traslado, etc.).",
+                "required": [
+                    "movimiento_id_bien",
+                    "movimiento_fecha",
+                    "movimiento_tipo",
+                    "movimiento_cantidad"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del movimiento",
+                        "type": "integer",
+                        "example": 1050
+                    },
+                    "movimiento_id_bien": {
+                        "description": "ID del bien afectado",
+                        "type": "integer",
+                        "example": 55
+                    },
+                    "movimiento_id_dep": {
+                        "description": "ID del departamento destino (ubicación física)",
+                        "type": "integer",
+                        "example": 3,
+                        "nullable": true
+                    },
+                    "movimiento_fecha": {
+                        "description": "Fecha y hora del suceso",
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-11-20T14:30:00Z"
+                    },
+                    "movimiento_tipo": {
+                        "description": "Tipo de operación",
+                        "type": "string",
+                        "enum": [
+                            "ALTA",
+                            "BAJA",
+                            "MOVIMIENTO",
+                            "EN_TRANSITO"
+                        ],
+                        "example": "MOVIMIENTO"
+                    },
+                    "movimiento_cantidad": {
+                        "description": "Cantidad de bienes afectados (generalmente 1)",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "movimiento_id_usuario_origen": {
+                        "description": "ID del usuario que inició la acción",
+                        "type": "integer",
+                        "example": 10,
+                        "nullable": true
+                    },
+                    "movimiento_id_usuario_destino": {
+                        "description": "ID del usuario receptor (si aplica)",
+                        "type": "integer",
+                        "example": 12,
+                        "nullable": true
+                    },
+                    "movimiento_id_usuario_autorizado": {
+                        "description": "ID del gestor o admin que autorizó",
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "movimiento_observaciones": {
+                        "description": "Notas adicionales",
+                        "type": "string",
+                        "example": "Traslado por reestructuración de oficinas",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "bien": {
+                        "$ref": "#/components/schemas/Bien"
+                    },
+                    "departamento": {
+                        "$ref": "#/components/schemas/Departamento"
+                    },
+                    "usuario_origen": {
+                        "$ref": "#/components/schemas/Usuario"
+                    }
+                },
+                "type": "object"
+            },
+            "Oficina": {
+                "title": "Oficina",
+                "description": "Espacio físico específico (ej. Sala de Juntas, Despacho 101) perteneciente a un departamento y ubicado en un edificio.",
+                "required": [
+                    "id_departamento",
+                    "id_edificio",
+                    "ofi_codigo",
+                    "nombre"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único de la oficina",
+                        "type": "integer",
+                        "example": 20
+                    },
+                    "id_departamento": {
+                        "description": "ID del departamento administrativo al que pertenece",
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "id_edificio": {
+                        "description": "ID del edificio físico donde se ubica",
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "ofi_codigo": {
+                        "description": "Código interno único",
+                        "type": "string",
+                        "example": "ADM-101"
+                    },
+                    "nombre": {
+                        "description": "Nombre de la oficina o espacio",
+                        "type": "string",
+                        "example": "Gerencia General"
+                    },
+                    "referencia": {
+                        "description": "Detalles de ubicación local",
+                        "type": "string",
+                        "example": "Segundo piso, puerta de cristal",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "edificio": {
+                        "$ref": "#/components/schemas/Edificio"
+                    },
+                    "departamento": {
+                        "$ref": "#/components/schemas/Departamento"
+                    },
+                    "bienes": {
+                        "description": "Lista de bienes ubicados actualmente aquí",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Bien"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "Resguardante": {
+                "title": "Resguardante",
+                "description": "Empleado o funcionario público responsable de la custodia de los bienes.",
+                "required": [
+                    "res_nombre",
+                    "res_apellidos",
+                    "res_departamento",
+                    "res_id_usuario"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del resguardante",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "res_nombre": {
+                        "description": "Nombre(s)",
+                        "type": "string",
+                        "example": "Juan Carlos"
+                    },
+                    "res_apellidos": {
+                        "description": "Apellidos",
+                        "type": "string",
+                        "example": "Pérez López"
+                    },
+                    "res_puesto": {
+                        "description": "Cargo o puesto laboral",
+                        "type": "string",
+                        "example": "Jefe de Departamento",
+                        "nullable": true
+                    },
+                    "res_correo": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "juan.perez@institucion.gob.mx",
+                        "nullable": true
+                    },
+                    "res_telefono": {
+                        "type": "string",
+                        "example": "555-123-4567",
+                        "nullable": true
+                    },
+                    "res_rfc": {
+                        "description": "Registro Federal de Contribuyentes",
+                        "type": "string",
+                        "example": "PELJ800101XYZ",
+                        "nullable": true
+                    },
+                    "res_curp": {
+                        "description": "Clave Única de Registro de Población",
+                        "type": "string",
+                        "example": "PELJ800101HDFRRN01",
+                        "nullable": true
+                    },
+                    "res_departamento": {
+                        "description": "ID del departamento al que pertenece",
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "res_id_usuario": {
+                        "description": "ID del usuario de sistema (login) asociado",
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "id_oficina": {
+                        "description": "ID de la oficina física asignada",
+                        "type": "integer",
+                        "example": 3,
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "departamento": {
+                        "$ref": "#/components/schemas/Departamento"
+                    },
+                    "oficina": {
+                        "$ref": "#/components/schemas/Oficina"
+                    },
+                    "usuario": {
+                        "$ref": "#/components/schemas/Usuario"
+                    },
+                    "bienes": {
+                        "description": "Lista de bienes bajo su resguardo actual",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Bien"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "Resguardo": {
+                "title": "Resguardo (Asignación)",
+                "description": "Registro que vincula un bien con un resguardante en una fecha específica.",
+                "required": [
+                    "resguardo_id_bien",
+                    "resguardo_id_resguardante",
+                    "resguardo_fecha_asignacion"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID del registro de resguardo",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "resguardo_id_bien": {
+                        "description": "ID del bien asignado",
+                        "type": "integer",
+                        "example": 55
+                    },
+                    "resguardo_id_resguardante": {
+                        "description": "ID del empleado responsable",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "resguardo_id_dep": {
+                        "description": "ID del departamento donde se encontraba al asignarse",
+                        "type": "integer",
+                        "example": 3,
+                        "nullable": true
+                    },
+                    "resguardo_fecha_asignacion": {
+                        "description": "Fecha en que se firmó/asignó el resguardo",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "bien": {
+                        "$ref": "#/components/schemas/Bien"
+                    },
+                    "resguardante": {
+                        "$ref": "#/components/schemas/Resguardante"
+                    },
+                    "departamento": {
+                        "$ref": "#/components/schemas/Departamento"
+                    }
+                },
+                "type": "object"
+            },
+            "Rol": {
+                "title": "Rol de Usuario",
+                "description": "Define el nivel de acceso y permisos dentro del sistema (ej. Administrador, Gestor, Resguardante).",
+                "required": [
+                    "rol_nombre"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del rol",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "rol_nombre": {
+                        "description": "Nombre del rol",
+                        "type": "string",
+                        "example": "Administrador"
+                    },
+                    "created_at": {
+                        "description": "Fecha de creación",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "description": "Fecha de actualización",
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "usuarios": {
+                        "description": "Lista de usuarios que poseen este rol (si se carga la relación)",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Usuario"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "Traspaso": {
+                "title": "Traspaso (Solicitud)",
+                "description": "Solicitud de transferencia de un bien entre dos resguardantes.",
+                "required": [
+                    "traspaso_id_bien",
+                    "traspaso_id_usuario_origen",
+                    "traspaso_id_usuario_destino",
+                    "traspaso_fecha_solicitud"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único de la solicitud",
+                        "type": "integer",
+                        "example": 150
+                    },
+                    "traspaso_id_bien": {
+                        "description": "ID del bien a transferir",
+                        "type": "integer",
+                        "example": 55
+                    },
+                    "traspaso_id_usuario_origen": {
+                        "description": "ID del Resguardante (Empleado) que entrega",
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "traspaso_id_usuario_destino": {
+                        "description": "ID del Resguardante (Empleado) que recibe",
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "traspaso_fecha_solicitud": {
+                        "description": "Fecha en que se creó la solicitud",
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-10-25"
+                    },
+                    "traspaso_estado": {
+                        "description": "Estado actual del flujo",
+                        "type": "string",
+                        "enum": [
+                            "Pendiente",
+                            "Aprobada",
+                            "Rechazada"
+                        ],
+                        "example": "Pendiente"
+                    },
+                    "traspaso_observaciones": {
+                        "description": "Notas opcionales",
+                        "type": "string",
+                        "example": "El equipo se entrega sin cargador",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "bien": {
+                        "$ref": "#/components/schemas/Bien"
+                    },
+                    "resguardanteOrigen": {
+                        "$ref": "#/components/schemas/Resguardante"
+                    },
+                    "resguardanteDestino": {
+                        "$ref": "#/components/schemas/Resguardante"
+                    }
+                },
+                "type": "object"
+            },
+            "Usuario": {
+                "title": "Usuario (Sistema)",
+                "description": "Entidad de autenticación principal. Se vincula a un Rol y puede tener perfil de Gestor o Resguardante.",
+                "required": [
+                    "usuario_nombre",
+                    "usuario_correo",
+                    "usuario_pass",
+                    "usuario_id_rol"
+                ],
+                "properties": {
+                    "id": {
+                        "description": "ID único del usuario",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "usuario_nombre": {
+                        "description": "Nombre de usuario o alias",
+                        "type": "string",
+                        "example": "Admin Principal"
+                    },
+                    "usuario_correo": {
+                        "description": "Correo para inicio de sesión",
+                        "type": "string",
+                        "format": "email",
+                        "example": "admin@sistema.com"
+                    },
+                    "usuario_pass": {
+                        "description": "Contraseña encriptada (Solo escritura, nunca se devuelve en respuestas JSON)",
+                        "type": "string",
+                        "format": "password",
+                        "writeOnly": true,
+                        "example": "secret123"
+                    },
+                    "usuario_id_rol": {
+                        "description": "ID del Rol (1=Admin, 2=Gestor, etc.)",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "rol": {
+                        "$ref": "#/components/schemas/Rol"
+                    },
+                    "resguardante": {
+                        "$ref": "#/components/schemas/Resguardante"
+                    },
+                    "gestor": {
+                        "$ref": "#/components/schemas/Gestor"
+                    }
+                },
+                "type": "object"
+            }
+        }
+    },
     "tags": [
         {
-            "name": "Áreas",
-            "description": "Endpoints para la gestión de Áreas Generales (ej. Subdirecciones)"
+            "name": "Areas",
+            "description": "Endpoints para la gestión de Áreas, Edificios y Responsables"
         },
         {
             "name": "Formularios",
@@ -2529,7 +4980,7 @@
         },
         {
             "name": "Bienes",
-            "description": "Endpoints para la gestión del inventario (Bienes)"
+            "description": "Endpoints para la gestión de los bienes del inventario"
         },
         {
             "name": "Catálogo CUCOP",
@@ -2552,6 +5003,10 @@
             "description": "Endpoints para la gestión de Gestores (Usuarios con rol de Gestor)"
         },
         {
+            "name": "Movimientos",
+            "description": "Endpoints para obtener los movimientos del bien"
+        },
+        {
             "name": "Resguardantes",
             "description": "Endpoints para la gestión de los resguardantes"
         },
@@ -2562,6 +5017,14 @@
         {
             "name": "Inventario",
             "description": "Inventario"
+        },
+        {
+            "name": "Oficinas",
+            "description": "Oficinas"
+        },
+        {
+            "name": "Perfil Resguardante",
+            "description": "Perfil Resguardante"
         }
     ]
 }

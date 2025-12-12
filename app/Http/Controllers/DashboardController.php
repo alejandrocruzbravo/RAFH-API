@@ -22,83 +22,78 @@ use Illuminate\Support\Facades\DB;
 class DashboardController extends Controller
 {
     /**
-     * Obtener Estadísticas Generales
-     *
-     * Retorna un resumen completo para el panel de control: conteos totales, 
-     * últimos registros, notificaciones pendientes y datos para gráficas.
-     *
      * @OA\Get(
-     * path="/dashboard/stats",
+     * path="/dashboard",
+     * summary="Obtener métricas y datos del Dashboard",
+     * description="Retorna todos los contadores, últimas actividades, notificaciones pendientes y datos para gráficas en una sola llamada.",
      * tags={"Dashboard"},
-     * summary="Obtener estadísticas del Dashboard",
      * @OA\Response(
      * response=200,
-     * description="Datos del dashboard recuperados exitosamente",
+     * description="Datos cargados correctamente",
      * @OA\JsonContent(
      * type="object",
-     * @OA\Property(
+     * * @OA\Property(
      * property="stats",
      * type="object",
-     * description="Contadores generales del sistema",
-     * @OA\Property(property="bienes_registrados", type="integer", example=20213),
+     * description="Contadores generales para los widgets superiores",
+     * @OA\Property(property="bienes_registrados", type="integer", example=1250),
      * @OA\Property(property="gestores_asignados", type="integer", example=5),
      * @OA\Property(property="areas_asociadas", type="integer", example=8),
-     * @OA\Property(property="resguardantes_registrados", type="integer", example=150),
+     * @OA\Property(property="resguardantes_registrados", type="integer", example=45),
      * @OA\Property(property="departamentos_totales", type="integer", example=12),
-     * @OA\Property(property="oficinas_totales", type="integer", example=45)
+     * @OA\Property(property="oficinas_totales", type="integer", example=30)
      * ),
-     * @OA\Property(
+     * * @OA\Property(
      * property="ultimo_bien_registrado",
      * type="object",
      * nullable=true,
-     * description="Información breve del último bien dado de alta",
-     * @OA\Property(property="nombre", type="string", example="Laptop HP ProBook"),
+     * description="Información del último lote o bien dado de alta",
+     * @OA\Property(property="nombre", type="string", example="Laptops Dell Latitude"),
      * @OA\Property(property="cantidad", type="integer", example=10)
      * ),
-     * @OA\Property(
+     * * @OA\Property(
      * property="ultima_transferencia",
      * type="object",
      * nullable=true,
-     * description="Información breve del último traspaso completado",
-     * @OA\Property(property="bien_nombre", type="string", example="Silla Ejecutiva"),
+     * description="Último traspaso aprobado",
+     * @OA\Property(property="bien_nombre", type="string", example="Proyector Epson"),
      * @OA\Property(property="realizada_por", type="string", example="Juan Pérez")
      * ),
-     * @OA\Property(
+     * * @OA\Property(
      * property="notificaciones",
      * type="object",
      * nullable=true,
-     * description="La solicitud de traspaso pendiente más reciente (para el widget de alerta)",
-     * @OA\Property(property="id_traspaso", type="integer", example=35),
-     * @OA\Property(property="bien_nombre", type="string", example="Monitor Dell"),
-     * @OA\Property(property="emisor", type="string", example="Ana López"),
-     * @OA\Property(property="receptor", type="string", example="Carlos Ruiz")
+     * description="Última solicitud de traspaso pendiente (para alerta)",
+     * @OA\Property(property="id_traspaso", type="integer", example=205),
+     * @OA\Property(property="bien_nombre", type="string", example="Monitor Samsung"),
+     * @OA\Property(property="emisor", type="string", example="Ana García"),
+     * @OA\Property(property="receptor", type="string", example="Carlos López")
      * ),
-     * @OA\Property(
+     * * @OA\Property(
      * property="ultimos_movimientos",
      * type="array",
      * description="Lista de los 5 movimientos más recientes",
      * @OA\Items(
      * type="object",
-     * @OA\Property(property="tipo", type="string", example="Asignación"),
-     * @OA\Property(property="bien_involucrado", type="string", example="Teclado USB"),
+     * @OA\Property(property="tipo", type="string", example="MOVIMIENTO"),
+     * @OA\Property(property="bien_involucrado", type="string", example="Silla Ejecutiva"),
      * @OA\Property(property="gestor_encargado", type="string", example="Admin"),
-     * @OA\Property(property="resguardante_responsable", type="string", example="Pedro Gomez"),
-     * @OA\Property(property="area", type="string", example="Sistemas")
+     * @OA\Property(property="resguardante_responsable", type="string", example="Roberto Gómez"),
+     * @OA\Property(property="area", type="string", example="Recursos Humanos")
      * )
      * ),
-     * @OA\Property(
+     * * @OA\Property(
      * property="estados_bienes",
      * type="array",
-     * description="Datos para la gráfica de pastel (conteo por estado)",
+     * description="Datos para la gráfica de pastel (Totales por estado)",
      * @OA\Items(
      * type="object",
-     * @OA\Property(property="bien_estado", type="string", example="Bueno"),
-     * @OA\Property(property="total", type="integer", example=150)
+     * @OA\Property(property="bien_estado", type="string", example="Activo"),
+     * @OA\Property(property="total", type="integer", example=850)
      * )
      * )
      * )
-     * ),
-     * @OA\Response(response=500, description="Error del servidor")
+     * )
      * )
      */
     public function index()

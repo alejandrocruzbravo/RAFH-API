@@ -20,50 +20,56 @@ use Throwable;
 /**
  * @OA\Tag(
  * name="Bienes",
- * description="Endpoints para la gestión del inventario (Bienes)"
+ * description="Endpoints para la gestión de los bienes del inventario"
  * )
  */
 class BienController extends Controller
 {
     /**
-     * Listar Bienes
-     *
-     * Muestra una lista paginada de bienes. Permite búsqueda global y filtrado por oficina.
-     *
      * @OA\Get(
      * path="/bienes",
+     * summary="Listar bienes con filtros",
+     * description="Obtiene una lista paginada de bienes. Requiere enviar 'search' O 'id_oficina'.",
      * tags={"Bienes"},
-     * summary="Listar y filtrar bienes",
      * @OA\Parameter(
      * name="search",
      * in="query",
-     * description="Término de búsqueda (código, serie, descripción, clave)",
+     * description="Término de búsqueda (código, serie, descripción)",
      * required=false,
-     * @OA\Schema(type="string")
+     * @OA\Schema(type="string", minLength=3)
      * ),
      * @OA\Parameter(
      * name="id_oficina",
      * in="query",
-     * description="Filtrar bienes por ID de oficina",
+     * description="Filtrar por ID de oficina",
      * required=false,
      * @OA\Schema(type="integer")
      * ),
      * @OA\Parameter(
      * name="page",
      * in="query",
-     * description="Número de página",
+     * description="Número de página para paginación",
      * required=false,
      * @OA\Schema(type="integer")
      * ),
      * @OA\Response(
      * response=200,
-     * description="Operación exitosa (Paginada)",
+     * description="Lista de bienes paginada",
      * @OA\JsonContent(
+     * @OA\Property(property="data", type="array", @OA\Items(
      * type="object",
-     * @OA\Property(property="data", type="array", @OA\Items(type="object")),
-     * @OA\Property(property="current_page", type="integer"),
-     * @OA\Property(property="total", type="integer")
+     * @OA\Property(property="id", type="integer", example=10),
+     * @OA\Property(property="bien_codigo", type="string", example="TI-2024-001"),
+     * @OA\Property(property="bien_descripcion", type="string", example="Laptop Dell"),
+     * @OA\Property(property="oficina", type="object", description="Datos de la oficina y ubicación")
+     * )),
+     * @OA\Property(property="current_page", type="integer", example=1),
+     * @OA\Property(property="total", type="integer", example=50)
      * )
+     * ),
+     * @OA\Response(
+     * response=400,
+     * description="Error: Falta filtro de búsqueda"
      * )
      * )
      */
@@ -112,40 +118,35 @@ class BienController extends Controller
     }
 
     /**
-     * Crear Bienes (Lotes)s
-     *
-     * Almacena uno o más bienes generando sus códigos automáticamente en secuencia.
-     *
      * @OA\Post(
      * path="/bienes",
+     * summary="Crear nuevos bienes (Lote o Unitario)",
+     * description="Crea uno o varios bienes basados en el campo 'cantidad'. Genera códigos secuenciales automáticamente.",
      * tags={"Bienes"},
-     * summary="Crear bienes (soporta lotes)",
      * @OA\RequestBody(
      * required=true,
      * @OA\JsonContent(
-     * required={"bien_descripcion", "bien_clave", "bien_y", "cantidad", "bien_valor_monetario"},
-     * @OA\Property(property="id_oficina", type="integer", example=1),
-     * @OA\Property(property="bien_clave", type="string", description="Clave CAMB", example="I060200310"),
-     * @OA\Property(property="bien_y", type="string", description="Año de alta", example="2025"),
-     * @OA\Property(property="cantidad", type="integer", description="Cantidad de bienes a generar", example=1),
-     * @OA\Property(property="bien_descripcion", type="string", example="Silla ejecutiva"),
-     * @OA\Property(property="bien_modelo", type="string", example="X-200"),
-     * @OA\Property(property="bien_serie", type="string", example="SN123456"),
-     * @OA\Property(property="bien_valor_monetario", type="number", format="float", example=1500.50),
-     * @OA\Property(property="bien_marca", type="string", example="Herman Miller"),
-     * @OA\Property(property="bien_estado", type="string", example="Bueno"),
-     * @OA\Property(property="bien_provedor", type="string"),
-     * @OA\Property(property="bien_numero_factura", type="string"),
-     * @OA\Property(property="bien_tipo_adquisicion", type="string"),
-     * @OA\Property(property="bien_fecha_alta", type="string", format="date")
+     * required={"bien_descripcion", "bien_valor_monetario", "bien_clave", "bien_y", "cantidad"},
+     * @OA\Property(property="id_oficina", type="integer", example=5),
+     * @OA\Property(property="bien_descripcion", type="string", example="Monitor 24 pulgadas"),
+     * @OA\Property(property="bien_valor_monetario", type="number", format="float", example=3500.50),
+     * @OA\Property(property="bien_clave", type="string", example="MOB-01", description="Prefijo para el código"),
+     * @OA\Property(property="bien_y", type="string", example="2024", description="Año del bien"),
+     * @OA\Property(property="cantidad", type="integer", example=5, description="Cuántos bienes idénticos crear"),
+     * @OA\Property(property="bien_serie", type="string", example="SN-123456", description="Opcional, serie del fabricante"),
+     * @OA\Property(property="bien_marca", type="string", example="Samsung"),
+     * @OA\Property(property="bien_modelo", type="string", example="S24F350")
      * )
      * ),
      * @OA\Response(
      * response=201,
      * description="Bienes creados exitosamente",
-     * @OA\JsonContent(type="array", @OA\Items(type="object"))
-     * ),
-     * @OA\Response(response=500, description="Error en la transacción")
+     * @OA\JsonContent(
+     * @OA\Property(property="message", type="string", example="Bienes registrados correctamente"),
+     * @OA\Property(property="cantidad", type="integer", example=5),
+     * @OA\Property(property="data", type="array", @OA\Items(type="object", description="Lista de bienes creados"))
+     * )
+     * )
      * )
      */
     public function store(Request $request)
@@ -156,7 +157,7 @@ class BienController extends Controller
             'bien_serie' => 'nullable|string|max:255',
             'bien_descripcion' => 'required|string',
             'bien_caracteristicas' => 'nullable|string',
-            'bien_tipo_adquisicion' => 'nullable|string|max:255',
+            'bien_tipo_adquisicion' => 'required|string|max:255',
             'bien_fecha_alta' => 'nullable|date',
             'bien_valor_monetario' => 'required|numeric|min:0',
             'bien_provedor' => 'nullable|string|max:255',
@@ -182,16 +183,17 @@ class BienController extends Controller
             DB::beginTransaction();
 
             $ultimoBien = Bien::where('bien_clave', $claveCamb)
+                                ->where('bien_y', $anio)
                                 ->orderByRaw('CAST(bien_secuencia AS INTEGER) DESC')
                                 ->lockForUpdate()
                                 ->first();
 
             $siguienteSecuenciaNum = $ultimoBien ? (int)$ultimoBien->bien_secuencia + 1 : 1;
+            $componente_anio = substr($anio, -2);
+            $componente_instituto = '23';
             $movimientoIdDep = null;
             if (!empty($validatedData['id_oficina'])) {
-                // Buscamos la oficina para sacar su departamento
                 $oficina = Oficina::find($validatedData['id_oficina']);
-                // Del objeto oficina, sacamos solo el ID numérico
                 $movimientoIdDep = $oficina ? $oficina->id_departamento : null;
             }
 
@@ -200,7 +202,7 @@ class BienController extends Controller
                 $secuenciaActualNum = $siguienteSecuenciaNum + $i;
                 $componente_secuencia_str = str_pad($secuenciaActualNum, 5, '0', STR_PAD_LEFT);
 
-                $nuevoCodigo = "{$claveCamb}-{$componente_secuencia_str}";
+                $nuevoCodigo = "{$claveCamb}-{$componente_anio}-{$componente_instituto}-{$componente_secuencia_str}";
 
                 $dataParaEsteBien = $baseData;
                 $dataParaEsteBien['bien_codigo'] = $nuevoCodigo;
@@ -212,18 +214,11 @@ class BienController extends Controller
 
                 MovimientoBien::create([
                     'movimiento_id_bien'        => $bien->id,
-                    
-                    // AQUÍ ESTABA EL ERROR: Antes pasabas el objeto, ahora pasamos el entero
                     'movimiento_id_dep'         => $movimientoIdDep, 
-                    
                     'movimiento_fecha'          => now(),
-                    'movimiento_tipo'           => 'ALTA', // O 'Alta' según tu base de datos
+                    'movimiento_tipo'           => 'ALTA', 
                     'movimiento_id_usuario_origen' => Auth::id(), 
-                    
-                    // OJO: El error también marcaba un '?' en usuario_destino. 
-                    // Si es nullable pon null, si no, pon el mismo usuario.
                     'movimiento_id_usuario_destino' => Auth::id(), 
-                    
                     'movimiento_id_usuario_autorizado' => Auth::id(),
                     'movimiento_observaciones'  => 'Alta inicial de bien por lote o unitario.',
                 ]);
@@ -250,164 +245,117 @@ class BienController extends Controller
     }
 
     /**
-     * Ver Detalles del Bien
-     *
-     * Muestra la ficha técnica completa de un bien, incluyendo historial de resguardos, movimientos y traspasos.
-     *
      * @OA\Get(
      * path="/bienes/{id}",
-     * tags={"Bienes"},
      * summary="Obtener detalles de un bien",
-     * @OA\Parameter(name="id", in="path", required=true, description="ID del bien", @OA\Schema(type="integer")),
+     * description="Retorna toda la información del bien, incluyendo historial formateado de resguardos y ubicaciones.",
+     * tags={"Bienes"},
+     * @OA\Parameter(
+     * name="id",
+     * in="path",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
      * @OA\Response(
      * response=200,
-     * description="Datos del bien",
-     * @OA\JsonContent(type="object")
+     * description="Detalles del bien",
+     * @OA\JsonContent(
+     * type="object",
+     * @OA\Property(property="id", type="integer", example=1),
+     * @OA\Property(property="bien_codigo", type="string", example="TI-001"),
+     * @OA\Property(property="resguardos", type="array", description="Historial procesado de resguardos", @OA\Items(
+     * @OA\Property(property="resguardo_fecha_asignacion", type="string", format="date"),
+     * @OA\Property(property="res_nombre", type="string"),
+     * @OA\Property(property="res_apellidos", type="string")
+     * )),
+     * @OA\Property(property="movimientos_bien", type="array", description="Historial de cambios de ubicación", @OA\Items(
+     * @OA\Property(property="movimiento_fecha", type="string", format="date-time"),
+     * @OA\Property(property="destino_oficina", type="string")
+     * ))
+     * )
      * ),
      * @OA\Response(response=404, description="Bien no encontrado")
      * )
      */
     public function show(Bien $biene)
     {
-        // 1. Cargar relaciones necesarias
-        $biene->load([
-            'oficina.departamento.area',
-            'oficina.edificio',
-            'resguardos.resguardante',      // Para nombre/apellidos
-            'movimientosBien.departamento', // Para nombre de oficina destino
-            'traspasos.usuarioOrigen'
-        ]);
+            // Cargar relaciones necesarias
+            $biene->load([
+                'oficina.departamento.area',
+                'oficina.edificio',
+                'resguardos.resguardante',      
+                'movimientosBien.departamento', 
+                'traspasos.usuarioOrigen'
+            ]);
 
-        // 2. Procesar HISTORIAL DE RESGUARDOS
-        // Solo queremos: fecha, nombre y apellidos
-        $historialResguardos = $biene->resguardos->map(function ($resguardo) {
-            return [
-                'resguardo_fecha_asignacion' => $resguardo->resguardo_fecha_asignacion,
-                'res_nombre'    => $resguardo->resguardante ? $resguardo->resguardante->res_nombre : 'Sin nombre',
-                'res_apellidos' => $resguardo->resguardante ? $resguardo->resguardante->res_apellidos : '',
-            ];
-        });
+            //  Procesar HISTORIAL DE RESGUARDOS
 
-        // 3. Procesar HISTORIAL DE UBICACIONES
-        // Filtro: Solo 'MOVIMIENTO' (quitamos 'ALTA')
-        // Datos: Solo fecha y nombre del departamento destino
-        $historialUbicaciones = $biene->movimientosBien
-            ->filter(function ($movimiento) {
-                return $movimiento->movimiento_tipo === 'MOVIMIENTO';
-            })
-            ->map(function ($movimiento) {
+            $historialResguardos = $biene->resguardos->map(function ($resguardo) {
                 return [
-                    'movimiento_fecha' => $movimiento->movimiento_fecha,
-                    'destino_oficina'  => $movimiento->departamento ? $movimiento->departamento->dep_nombre : 'Ubicación Desconocida',
+                    'resguardo_fecha_asignacion' => $resguardo->resguardo_fecha_asignacion,
+                    'res_nombre'    => $resguardo->resguardante ? $resguardo->resguardante->res_nombre : 'Sin nombre',
+                    'res_apellidos' => $resguardo->resguardante ? $resguardo->resguardante->res_apellidos : '',
                 ];
-            })
-            ->values(); // IMPORTANTE: Resetea los índices del array para que sea un JSON Array [..] y no un Objeto {"2":..}
+            });
 
-        // 4. Construir la respuesta final limpia
-        // Convertimos el bien a array y sobrescribimos las relaciones con nuestros datos filtrados
-        $respuesta = $biene->toArray();
-        
-        // Reemplazamos los arrays "sucios" por los filtrados
-        $respuesta['resguardos'] = $historialResguardos;
-        $respuesta['movimientos_bien'] = $historialUbicaciones;
+            // Procesar HISTORIAL DE UBICACIONES
 
-        // Opcional: Si quieres usar nombres de clave personalizados como pediste en el ejemplo anterior:
-        // $respuesta['historial_resguardos'] = $historialResguardos;
-        // $respuesta['historial_ubicaciones'] = $historialUbicaciones;
-        // unset($respuesta['resguardos'], $respuesta['movimientos_bien']); // Borramos los originales
+            $historialUbicaciones = $biene->movimientosBien
+                ->filter(function ($movimiento) {
+                    return $movimiento->movimiento_tipo === 'MOVIMIENTO';
+                })
+                ->map(function ($movimiento) {
+                    return [
+                        'movimiento_fecha' => $movimiento->movimiento_fecha,
+                        'destino_oficina'  => $movimiento->departamento ? $movimiento->departamento->dep_nombre : 'Ubicación Desconocida',
+                    ];
+                })
+                ->values(); 
+            $respuesta = $biene->toArray();
+            
+            // Reemplazamos los arrays "sucios" por los filtrados
+            $respuesta['resguardos'] = $historialResguardos;
+            $respuesta['movimientos_bien'] = $historialUbicaciones;
 
-        return response()->json($respuesta);
-}
+
+            return response()->json($respuesta);
+    }
     /**
      * @OA\Put(
-     * path="/api/bienes/{id}",
-     * summary="Actualizar, Mover, Dar de Baja o Reactivar un Bien",
-     * description="Este endpoint centraliza todas las modificaciones del Bien. El comportamiento depende del campo 'accion'.",
+     * path="/bienes/{id}",
+     * summary="Actualizar un bien (Polimórfico)",
+     * description="Permite editar info, dar de baja, mover, reactivar o regresar resguardo basado en el campo 'accion'.",
      * tags={"Bienes"},
-     * @OA\Parameter(
-     * name="id",
-     * in="path",
-     * description="ID del Bien",
-     * required=true,
-     * @OA\Schema(type="integer")
-     * ),
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
      * @OA\RequestBody(
      * required=true,
-     * description="El cuerpo de la petición cambia según la acción deseada.",
-     * @OA\MediaType(
-     * mediaType="application/json",
-     * @OA\Schema(
-     * type="object",
-     * @OA\Property(property="accion", type="string", enum={"editar_info", "baja", "mover", "reactivar"}, description="Controlador de flujo. Si se omite, se asume 'editar_info'."),
-     * @OA\Property(property="bien_marca", type="string", description="Solo para editar_info"),
-     * @OA\Property(property="bien_modelo", type="string", description="Solo para editar_info"),
-     * @OA\Property(property="motivo_baja", type="string", description="Requerido para accion='baja'"),
-     * @OA\Property(property="fecha_baja", type="string", format="date", description="Requerido para accion='baja'"),
-     * @OA\Property(property="nuevo_id_oficina", type="integer", description="Requerido para accion='mover'"),
-     * @OA\Property(property="nuevo_id_responsable", type="integer", description="Opcional para accion='mover'"),
-     * @OA\Property(property="observaciones", type="string", description="Opcional para accion='mover'"),
-     * @OA\Property(property="id_oficina", type="integer", description="Requerido para accion='reactivar'"),
-     * @OA\Property(property="id_resguardante", type="integer", description="Opcional para accion='reactivar'")
-     * ),
-     * @OA\Examples(
-     * example="1_editar",
-     * summary="Caso 1: Editar Información (Default)",
-     * value={
-     * "accion": "editar_info",
-     * "bien_marca": "Dell",
-     * "bien_modelo": "Latitude 5420"
-     * }
-     * ),
-     * @OA\Examples(
-     * example="2_baja",
-     * summary="Caso 2: Dar de Baja",
-     * value={
-     * "accion": "baja",
-     * "fecha_baja": "2024-11-22"
-     * }
-     * ),
-     * @OA\Examples(
-     * example="3_mover",
-     * summary="Caso 3: Mover (Traspaso)",
-     * value={
-     * "accion": "mover",
-     * "nuevo_id_oficina": 15,
-     * "nuevo_id_responsable": 4,
-     * }
-     * ),
-     * @OA\Examples(
-     * example="4_reactivar",
-     * summary="Caso 4: Reactivar",
-     * value={
-     * "accion": "reactivar",
-     * "id_oficina": 10,
-     * "id_resguardante": 45
-     * }
-     * )
+     * @OA\JsonContent(
+     * required={"accion"},
+     * @OA\Property(property="accion", type="string", enum={"editar_info", "baja", "mover", "reactivar", "regresar"}, description="Define qué lógica ejecutar"),
+     * @OA\Property(property="nuevo_id_oficina", type="integer", description="Requerido para acciones 'mover' o 'reactivar'"),
+     * @OA\Property(property="bien_descripcion", type="string", description="Para editar_info"),
+     * @OA\Property(property="bien_estado", type="string", description="Para editar_info"),
+     * @OA\Property(property="id_resguardante", type="integer", description="Para editar_info")
      * )
      * ),
      * @OA\Response(
      * response=200,
      * description="Operación exitosa",
      * @OA\JsonContent(
-     * @OA\Property(property="message", type="string", example="El bien ha sido dado de baja correctamente"),
+     * @OA\Property(property="message", type="string", example="Información actualizada"),
      * @OA\Property(property="data", type="object")
      * )
      * ),
-     * @OA\Response(
-     * response=422,
-     * description="Error de validación (faltan campos requeridos según la acción)"
-     * )
+     * @OA\Response(response=403, description="No tienes permisos para mover este bien"),
+     * @OA\Response(response=409, description="Conflicto (ej. el bien tiene resguardo activo y no se puede mover)")
      * )
      */
     public function update(Request $request, Bien $biene)
     {
-        // 1. Detectamos la intención del usuario
         // Si no envían 'accion', asumimos que es una edición normal.
         $accion = $request->input('accion', 'editar_info');
         $user = $request->user();
 
-        // 2. Usamos match (PHP 8) para dirigir el tráfico
         return match ($accion) {
             'baja'   => $this->procesarBaja($request, $biene),
             'mover'     => $this->determinarTipoMovimiento($request, $biene, $user),
@@ -419,22 +367,14 @@ class BienController extends Controller
     }
     protected function determinarTipoMovimiento($request, $bien, $user)
     {
-        // Si es Administrador, usa la lógica que YA tenías (cambio de dueño)
-        // Ajusta esta condición según cómo validas tus roles (ej: $user->hasRole('Administrador'))
+
         if ($user->rol && $user->rol->nombre === 'Administrador') {
             return $this->procesarMovimiento($request, $bien);
         }
 
-        // Si NO es admin (es Resguardante), usa la nueva lógica (cambio físico/tránsito)
         return $this->procesarMovimientoResguardante($request, $bien);
     }
 
-
-
-    
-    /**
-     * Lógica para dar de baja
-     */
     protected function procesarBaja(Request $request, Bien $biene)
     {
         $biene->update([
@@ -444,33 +384,25 @@ class BienController extends Controller
         return response()->json([
         'message' => 'El bien ha sido dado de baja correctamente', 
         'data' => $biene,
-    ]);
+        ]);
     }
 
-    /**
-     * Lógica para mover/traspasar 
-     */
     protected function procesarMovimiento(Request $request, Bien $biene)
     {
-        // --- REGLA 1: VALIDAR RESGUARDOS ACTIVOS ---
-        // Verificamos si el bien tiene algún registro en la tabla de resguardos.
-        // Asumimos que si existe la relación, es que está asignado.
+
         if ($biene->resguardos()->exists()) {
             return response()->json([
                 'message' => 'No se puede mover el bien porque tiene un resguardo asignado. Debe liberar el resguardo primero.'
-            ], 409); // 409 Conflict
+            ], 409); 
         }
 
-        // 2. Validación de entrada
         $datos = $request->validate([
             'nuevo_id_oficina' => 'required|exists:oficinas,id',
         ]);
 
-        // --- REGLA 2: ACTUALIZAR ORIGEN Y UBICACIÓN ACTUAL ---
         $biene->update([
-            'id_oficina' => $datos['nuevo_id_oficina'],            // Nuevo dueño administrativo
-            'bien_ubicacion_actual' => $datos['nuevo_id_oficina'], // Nueva ubicación física
-            // Opcional: Si estaba "En tránsito", al llegar a su nueva casa oficial, pasa a Activo
+            'id_oficina' => $datos['nuevo_id_oficina'],            
+            'bien_ubicacion_actual' => $datos['nuevo_id_oficina'], 
             'bien_estado' => 'Activo' 
         ]);
 
@@ -481,37 +413,30 @@ class BienController extends Controller
     }
     protected function procesarMovimientoResguardante(Request $request, Bien $biene)
     {
-        // 1. Validación (Igual que en admin, necesitamos saber a dónde va)
         $datos = $request->validate([
             'nuevo_id_oficina' => 'required|exists:oficinas,id',
         ]);
 
-        // Opcional: Validar que el bien realmente pertenezca a este resguardante
-        // para evitar que muevan cosas que no tienen asignadas.
         $user = $request->user();
-        // Asumiendo que $biene->id_resguardante se relaciona con el usuario:
         if ($user->resguardante && $biene->id_resguardante !== $user->resguardante->id) {
             return response()->json(['message' => 'No tienes permiso para mover este bien.'], 403);
         }
 
         // Obtener datos necesarios para el historial
-        // Necesitamos saber a qué departamento pertenece la oficina destino
         $nuevaOficina = Oficina::findOrFail($datos['nuevo_id_oficina']);
 
         //Crear el Registro en la tabla movimientos_bien
         $nuevoMovimiento = MovimientoBien::create([
             'movimiento_id_bien' => $biene->id,
-            'movimiento_id_dep'  => $nuevaOficina->id_departamento, // Asumiendo que Oficina tiene esta col
+            'movimiento_id_dep'  => $nuevaOficina->id_departamento, 
             'movimiento_fecha'   => Carbon::now(),
             'movimiento_tipo'    => 'MOVIMIENTO', // O el código que uses
             'movimiento_cantidad'=> 1,
             'movimiento_id_usuario_origen' => $user->id,
-            // Destino y Autorizado pueden ser nulos o según tu lógica de negocio
             'movimiento_id_usuario_destino' => $user->id, 
             'movimiento_id_usuario_autorizado' => $user->id,
             'movimiento_observaciones' => 'Movimiento físico realizado por resguardante (En tránsito).',
         ]);
-        // Actualización: Solo ubicación física y estado
         $biene->update([
             'bien_ubicacion_actual' => $datos['nuevo_id_oficina'],
             'bien_estado' => 'En tránsito' 
@@ -527,14 +452,10 @@ class BienController extends Controller
     }
     protected function procesarRegresoResguardante(Request $request, Bien $biene)
     {
-        // Validamos que el bien esté realmente en tránsito (opcional, pero recomendado)
         if ($biene->bien_estado !== 'En tránsito') {
             return response()->json(['message' => 'El bien no está en tránsito.'], 400);
         }
 
-        // ACTUALIZACIÓN:
-        // 1. La ubicación física vuelve a ser la oficina de origen (id_oficina)
-        // 2. El estado pasa a 'Activo'
         $biene->update([
             'bien_ubicacion_actual' => $biene->id_oficina, 
             'bien_estado' => 'Activo'
@@ -546,14 +467,9 @@ class BienController extends Controller
         ]);
     }
 
-    /**
-     * Edición estándar (Nombre, marca, serie, etc.)
-     */
     protected function procesarEdicionNormal(Request $request, Bien $biene)
     {
-        // $this->authorize('update', $biene);
 
-        // Utilizamos 'sometimes' para permitir actualizaciones parciales
         $datos = $request->validate([
             'bien_descripcion'      => 'sometimes|required|string',
             'bien_caracteristicas'  => 'sometimes|nullable|string',
@@ -567,10 +483,7 @@ class BienController extends Controller
             'bien_fecha_alta'       => 'sometimes|nullable|date',
 
         ]);
-
         $biene->update($datos);
-
-        // Refrescamos para devolver el objeto completo y actualizado al frontend
         $biene->refresh();
 
         return response()->json([
@@ -578,17 +491,12 @@ class BienController extends Controller
             'data' => $biene
         ]);
     }
-    /**
-     * Lógica para reactivar un bien que estaba de baja.
-     * Cambia estado a 'Activo' y lo asigna a una nueva oficina.
-     */
+
     protected function procesarReactivacion(Request $request, Bien $biene)
     {
         $datos = $request->validate([
             'id_oficina' => 'required|exists:oficinas,id',
         ]);
-
-        // 2. Ejecución
         $biene->update([
             'bien_estado' => 'Activo',
             'id_oficina'  => $datos['id_oficina'],
@@ -600,59 +508,20 @@ class BienController extends Controller
             'data'    => $biene
         ]);
     }
+
     /**
-     * Comparar Inventario (Auditoría)
-     *
-     * Compara una lista de códigos escaneados con los bienes registrados en una oficina.
-     * Devuelve bienes encontrados, faltantes y sobrantes.
-     *
-     * @OA\Post(
-     * path="/inventario/comparar",
-     * tags={"Bienes"},
-     * summary="Comparar inventario físico vs sistema",
-     * @OA\RequestBody(
-     * required=true,
-     * @OA\JsonContent(
-     * required={"id_oficina", "claves_escaneadas"},
-     * @OA\Property(property="id_oficina", type="integer", example=1),
-     * @OA\Property(
-     * property="claves_escaneadas", 
-     * type="array", 
-     * @OA\Items(type="string"), 
-     * example={"I060200310-25-23-00001", "I060200310-25-23-00002"}
-     * )
-     * )
-     * ),
-     * @OA\Response(
-     * response=200,
-     * description="Resultado de la comparación",
-     * @OA\JsonContent(
-     * @OA\Property(
-     * property="resumen",
-     * type="object",
-     * @OA\Property(property="total_esperados", type="integer"),
-     * @OA\Property(property="total_escaneados", type="integer"),
-     * @OA\Property(property="conteo_encontrados", type="integer"),
-     * @OA\Property(property="conteo_faltantes", type="integer"),
-     * @OA\Property(property="conteo_sobrantes", type="integer")
-     * ),
-     * @OA\Property(property="encontrados", type="array", @OA\Items(type="object")),
-     * @OA\Property(property="faltantes", type="array", @OA\Items(type="object")),
-     * @OA\Property(property="sobrantes", type="array", @OA\Items(type="object"))
-     * )
-     * )
-     * )
-     */
-        /**
-     * Eliminar Bien
-     *
      * @OA\Delete(
      * path="/bienes/{id}",
+     * summary="Eliminar un bien",
      * tags={"Bienes"},
-     * summary="Eliminar un bien permanentemente",
-     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
-     * @OA\Response(response=204, description="Bien eliminado"),
-     * @OA\Response(response=409, description="Conflicto: El bien tiene registros asociados"),
+     * @OA\Parameter(
+     * name="id",
+     * in="path",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
+     * @OA\Response(response=204, description="Bien eliminado correctamente"),
+     * @OA\Response(response=409, description="No se puede eliminar (tiene registros asociados)"),
      * @OA\Response(response=500, description="Error del servidor")
      * )
      */
@@ -672,47 +541,33 @@ class BienController extends Controller
             return response()->json(['error' => 'Error al eliminar el bien.', 'message' => $e->getMessage()], 500);
         }
     }
+
     /**
      * @OA\Post(
-     * path="/api/bienes/comparar-inventario",
-     * summary="Comparar Inventario Físico vs Teórico",
-     * description="Recibe el ID de una oficina y una lista de códigos escaneados (físicos). Retorna un reporte con faltantes, sobrantes y encontrados.",
+     * path="/bienes/comparar-inventario",
+     * summary="Comparar inventario físico vs sistema",
+     * description="Recibe una lista de códigos escaneados y devuelve encontrados, faltantes y sobrantes.",
      * tags={"Inventario"},
      * @OA\RequestBody(
      * required=true,
-     * description="Datos del levantamiento de inventario",
      * @OA\JsonContent(
      * required={"id_oficina", "claves_escaneadas"},
-     * @OA\Property(property="id_oficina", type="integer", example=15, description="ID de la oficina donde se escanea"),
-     * @OA\Property(
-     * property="claves_escaneadas",
-     * type="array",
-     * description="Array con los códigos de barras leídos por la pistola/cámara",
-     * @OA\Items(type="string", example="I555-25-23-ABC")
-     * )
+     * @OA\Property(property="id_oficina", type="integer", example=10),
+     * @OA\Property(property="claves_escaneadas", type="array", @OA\Items(type="string", example="TI-2024-001"))
      * )
      * ),
      * @OA\Response(
      * response=200,
-     * description="Reporte generado correctamente",
+     * description="Resultado de la comparación",
      * @OA\JsonContent(
-     * @OA\Property(
-     * property="resumen",
-     * type="object",
-     * @OA\Property(property="total_esperados", type="integer", example=100, description="Total en base de datos para esa oficina"),
-     * @OA\Property(property="total_escaneados", type="integer", example=95, description="Total de códigos enviados"),
-     * @OA\Property(property="conteo_encontrados", type="integer", example=90),
-     * @OA\Property(property="conteo_faltantes", type="integer", example=10, description="Están en BD pero no se escanearon"),
-     * @OA\Property(property="conteo_sobrantes", type="integer", example=5, description="Se escanearon pero no pertenecen a esta oficina")
+     * @OA\Property(property="resumen", type="object",
+     * @OA\Property(property="total_esperados", type="integer"),
+     * @OA\Property(property="conteo_faltantes", type="integer")
      * ),
-     * @OA\Property(property="encontrados", type="array", @OA\Items(type="object"), description="Lista completa de objetos encontrados"),
-     * @OA\Property(property="faltantes", type="array", @OA\Items(type="object"), description="Lista completa de objetos faltantes"),
-     * @OA\Property(property="sobrantes", type="array", @OA\Items(type="object"), description="Lista de objetos sobrantes con su oficina real (si existe)")
+     * @OA\Property(property="faltantes", type="array", @OA\Items(type="object")),
+     * @OA\Property(property="sobrantes", type="array", @OA\Items(type="object")),
+     * @OA\Property(property="encontrados", type="array", @OA\Items(type="object"))
      * )
-     * ),
-     * @OA\Response(
-     * response=422,
-     * description="Error de validación en los datos enviados"
      * )
      * )
      */
@@ -721,32 +576,28 @@ class BienController extends Controller
         $idOficina = $request->input('id_oficina');
         $escaneados = collect($request->input('claves_escaneadas'));
 
-        // 1. Relaciones
         $relacionesBase = [
             'oficina.departamento:id,dep_nombre',
             'ubicacionActual:id,nombre' 
         ];
 
-        // 2. Teóricos
         $bienesTeoricos = Bien::with($relacionesBase)
                             ->where('id_oficina', $idOficina)
                             ->get();
                             
         $clavesTeoricas = $bienesTeoricos->pluck('bien_codigo');
 
-        // 3. ENCONTRADOS Y FALTANTES (Aquí aplicamos el makeHidden extra)
-        
+        // ENCONTRADOS
         $encontrados = $bienesTeoricos->whereIn('bien_codigo', $escaneados)
                                       ->values()
                                       // Ocultamos fechas Y la llave foránea redundante
                                       ->makeHidden(['created_at', 'updated_at', 'bien_ubicacion_actual']);
-
+        // FALTANTES
         $faltantes = $bienesTeoricos->whereNotIn('bien_codigo', $escaneados)
                                     ->values()
-                                    // Igual aquí
                                     ->makeHidden(['created_at', 'updated_at', 'bien_ubicacion_actual']);
 
-        // 4. SOBRANTES
+        // SOBRANTES
         $clavesSobrantes = $escaneados->diff($clavesTeoricas);
         
         $sobrantesRaw = Bien::whereIn('bien_codigo', $clavesSobrantes)
@@ -758,7 +609,6 @@ class BienController extends Controller
                             ])
                             ->get();
 
-        // 5. Mapeo (Esto ya estaba bien, no devuelve bien_ubicacion_actual)
         $sobrantesLimpios = $sobrantesRaw->map(function ($bien) {
             $resguardo = $bien->resguardos->first(); 
             $resguardante = $resguardo ? $resguardo->resguardante : null;
@@ -793,29 +643,16 @@ class BienController extends Controller
     }
     /**
      * @OA\Get(
-     * path="/api/bienes/bajas",
+     * path="/bienes/bajas",
      * summary="Listar bienes dados de baja",
-     * description="Obtiene el listado histórico de todos los bienes con estado 'Baja', incluyendo su oficina y resguardos asociados.",
      * tags={"Bienes"},
      * @OA\Response(
      * response=200,
-     * description="Listado obtenido correctamente",
+     * description="Lista de bienes inactivos",
      * @OA\JsonContent(
      * @OA\Property(property="success", type="boolean", example=true),
-     * @OA\Property(property="cantidad", type="integer", example=15),
-     * @OA\Property(
-     * property="data",
-     * type="array",
-     * @OA\Items(
-     * type="object",
-     * description="Objeto Bien completo",
-     * @OA\Property(property="id", type="integer", example=1),
-     * @OA\Property(property="bien_codigo", type="string", example="I0-23-XYZ"),
-     * @OA\Property(property="bien_estado", type="string", example="Baja"),
-     * @OA\Property(property="oficina", type="object", description="Relación con Oficina"),
-     * @OA\Property(property="resguardos", type="array", @OA\Items(type="object"), description="Historial de resguardos")
-     * )
-     * )
+     * @OA\Property(property="cantidad", type="integer"),
+     * @OA\Property(property="data", type="array", @OA\Items(type="object"))
      * )
      * )
      * )
@@ -823,9 +660,8 @@ class BienController extends Controller
     public function bajas()
     {
         // Buscamos todos los bienes donde 'bien_estado' sea 'Baja'
-        // Usamos get() para traer la colección completa
         $bienesBaja = Bien::where('bien_estado', 'Baja')
-                            ->with(['oficina', 'resguardos']) // Opcional: Carga relaciones para no hacer consultas extra
+                            ->with(['oficina', 'resguardos']) //Carga relaciones para no hacer consultas extra
                             ->get();
 
         return response()->json([
@@ -834,9 +670,23 @@ class BienController extends Controller
             'data' => $bienesBaja
         ], 200);
     }
-
     /**
-     * Busca un bien específico por su código único o número de serie.
+     * @OA\Get(
+     * path="/bienes/buscar-codigo/{codigo}",
+     * summary="Buscar bien por código exacto o serie",
+     * tags={"Bienes"},
+     * @OA\Parameter(name="codigo", in="path", required=true, @OA\Schema(type="string")),
+     * @OA\Response(
+     * response=200,
+     * description="Bien encontrado",
+     * @OA\JsonContent(
+     * @OA\Property(property="message", type="string", example="Bien encontrado"),
+     * @OA\Property(property="data", type="object")
+     * )
+     * ),
+     * @OA\Response(response=404, description="No se encontró ningún bien"),
+     * @OA\Response(response=409, description="El bien existe pero está dado de BAJA")
+     * )
      */
     public function buscarPorCodigo($codigo)
     {
@@ -855,12 +705,11 @@ class BienController extends Controller
             ], 404);
         }
 
-        // Validación opcional: Verificar si está dado de baja
         if ($bien->bien_estado === 'Baja') {
              return response()->json([
                 'message' => 'El bien existe pero está dado de BAJA.',
                 'data' => $bien
-            ], 409); // 409 Conflict (o 404 si prefieres ocultarlo)
+            ], 409); 
         }
 
         return response()->json([
@@ -868,16 +717,47 @@ class BienController extends Controller
             'data' => $bien
         ], 200);
     }
-
+    /**
+     * @OA\Post(
+     * path="/bienes/procesar-levantamiento",
+     * summary="Procesar resultados del levantamiento",
+     * description="Actualiza masivamente los bienes encontrados, faltantes y sobrantes tras una auditoría.",
+     * tags={"Inventario"},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"id_oficina_levantamiento"},
+     * @OA\Property(property="id_oficina_levantamiento", type="integer"),
+     * @OA\Property(property="encontrados", type="array", @OA\Items(
+     * @OA\Property(property="id", type="integer"),
+     * @OA\Property(property="accion", type="string", enum={"ACTIVO", "EN_TRANSITO", "EXTRAVIADO"}),
+     * @OA\Property(property="bien_descripcion", type="string", description="Para corregir datos al vuelo")
+     * )),
+     * @OA\Property(property="faltantes", type="array", @OA\Items(
+     * @OA\Property(property="id", type="integer"),
+     * @OA\Property(property="accion", type="string", enum={"EXTRAVIADO", "ACTIVO"})
+     * )),
+     * @OA\Property(property="sobrantes", type="array", @OA\Items(
+     * @OA\Property(property="id", type="integer"),
+     * @OA\Property(property="accion", type="string", enum={"ACTUALIZAR_AQUI", "REGRESAR_ORIGEN"})
+     * ))
+     * )
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Levantamiento procesado correctamente",
+     * @OA\JsonContent(@OA\Property(property="message", type="string"))
+     * ),
+     * @OA\Response(response=500, description="Error en la transacción")
+     * )
+     */
     public function procesarLevantamiento(Request $request)
     {
-        // 1. VALIDACIÓN
         $request->validate([
             'id_oficina_levantamiento' => 'required|exists:oficinas,id',
             
             'encontrados' => 'array',
             'encontrados.*.id' => 'required|exists:bienes,id',
-            // Validamos los campos editables con el prefijo correcto
             'encontrados.*.bien_marca' => 'nullable|string|max:100',
             'encontrados.*.bien_modelo' => 'nullable|string|max:100',
             'encontrados.*.bien_serie' => 'nullable|string|max:100',
@@ -896,16 +776,14 @@ class BienController extends Controller
         try {
             DB::transaction(function () use ($request, $idOficinaFisica) {
                 
-                // ==========================================
-                // 1. BIENES ENCONTRADOS
-                // ==========================================
+                // BIENES ENCONTRADOS
                 $encontrados = $request->input('encontrados', []);
                 
                 foreach ($encontrados as $item) {
                     $bien = Bien::find($item['id']);
                     if (!$bien) continue;
 
-                    // A. Determinamos el estado y ubicación según la "accion"
+                    // Determinamos el estado y ubicación según la "accion"
                     $accion = $item['accion'] ?? 'ACTIVO'; 
 
                     switch ($accion) {
@@ -931,7 +809,7 @@ class BienController extends Controller
                             break;
                     }
 
-                    // B. Actualización de información (Edición)
+                    // Actualización de información (Edición)
                     // Filtramos solo los campos que coinciden con la BD
                     $datosEditables = Arr::only($item, [
                         'bien_marca', 
@@ -940,18 +818,13 @@ class BienController extends Controller
                         'bien_descripcion', 
                         'bien_caracteristicas'
                     ]);
-
-                    // Si el array contiene datos, actualizamos
                     if (!empty($datosEditables)) {
                         $bien->fill($datosEditables);
                     }
 
                     $bien->save();
                 }
-
-                // ==========================================
-                // 2. BIENES FALTANTES
-                // ==========================================
+                // BIENES FALTANTES
                 $faltantes = $request->input('faltantes', []);
                 
                 foreach ($faltantes as $item) {
@@ -981,16 +854,14 @@ class BienController extends Controller
                     $bien->save();
                 }
 
-                // ==========================================
-                // 3. BIENES SOBRANTES
-                // ==========================================
+                // BIENES SOBRANTES
                 $sobrantes = $request->input('sobrantes', []);
                 
                 foreach ($sobrantes as $item) {
                     $bien = Bien::find($item['id']);
                     if (!$bien) continue;
 
-                    // --- VALIDACIÓN DE RESGUARDO ---
+                    // VALIDACIÓN DE RESGUARDO 
                     // Verifica que la relación 'resguardos' exista en tu modelo Bien.
                     // Si el nombre de la relación es diferente, ajústalo aquí.
                     $tieneResguardoActivo = false;
@@ -1023,10 +894,8 @@ class BienController extends Controller
                     $bien->save();
                 }
 
-            }); // Fin Transacción
+            });
 
-            // Evento WebSocket para notificar al Frontend
-            // Asegúrate que tu clase de evento tenga la propiedad pública $nuevoEstado
             event(new BienEstadoActualizado(null, 'ACTUALIZACION_MASIVA', $idOficinaFisica));
 
             return response()->json(['message' => 'Levantamiento procesado correctamente.']);
@@ -1038,7 +907,31 @@ class BienController extends Controller
             ], 500);
         }
     }
-    
+    /**
+     * @OA\Post(
+     * path="/bienes/{id}/foto",
+     * summary="Subir foto del bien",
+     * tags={"Bienes"},
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\MediaType(
+     * mediaType="multipart/form-data",
+     * @OA\Schema(
+     * @OA\Property(property="imagen", type="string", format="binary", description="Archivo de imagen (jpg, png)")
+     * )
+     * )
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Imagen actualizada",
+     * @OA\JsonContent(
+     * @OA\Property(property="message", type="string"),
+     * @OA\Property(property="foto_url", type="string")
+     * )
+     * )
+     * )
+     */
     public function subirFoto(Request $request, $id)
     {
         $request->validate([
@@ -1048,38 +941,27 @@ class BienController extends Controller
         $bien = Bien::findOrFail($id);
 
         if ($request->hasFile('imagen')) {
-            // 1. Si ya tenía foto, borrarla (opcional, buena práctica)
             if ($bien->bien_foto && Storage::disk('public')->exists($bien->bien_foto)) {
                 Storage::disk('public')->delete($bien->bien_foto);
             }
-
-            // 2. Guardar nueva foto en carpeta 'bienes' dentro de 'public'
             $path = $request->file('imagen')->store('bienes', 'public');
 
-            // 3. Actualizar BD
             $bien->bien_foto = $path;
             $bien->save();
         }
 
         return response()->json([
             'message' => 'Imagen actualizada',
-            'foto_url' => $bien->foto_url // Usamos el accessor
+            'foto_url' => $bien->foto_url 
         ]);
     }
     public function getFotoUrlAttribute()
     {
         if ($this->bien_foto) {
-            // Opción A (Más segura para redes locales): Usar asset
             return asset('storage/' . $this->bien_foto);
-            
-            // Opción B (Standard): Usar Storage::url
-            // return Storage::url($this->bien_foto);
         }
         
-        // Si no hay foto, devuelve null o una imagen por defecto
         return null; 
     }
-
-        // Asegúrate de que 'foto_url' esté en el append si usas toArray() en otros lados
-        protected $appends = ['foto_url'];
-    }
+    protected $appends = ['foto_url'];
+}

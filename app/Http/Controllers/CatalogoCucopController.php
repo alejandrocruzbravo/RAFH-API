@@ -112,23 +112,11 @@ class CatalogoCucopController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'tipo' => 'required|string|max:255',
             'clave_cucop' => 'required|integer|unique:catalogo_camb_cucop,clave_cucop', // Unique
             'partida_especifica' => 'nullable|string|max:255',
-            'clave_cucop_plus' => 'nullable|string|max:255',
             'descripcion' => 'required|string',
-            'nivel' => 'nullable|string|max:255',
             'camb' => 'nullable|string|max:255',
-            'unidad_medida' => 'nullable|string|max:255',
-            'tipo_contratacion' => 'nullable|string|max:255',
         ]);
-
-        // Campos constantes por especificación
-        $validatedData['tipo'] = '1';
-        $validatedData['nivel'] = '5';
-        $validatedData['unidad_medida'] = 'pieza';
-        $validatedData['tipo_contratacion'] = 'adquisiciones';
-
         try {
             $registro = CatalogoCambCucop::create($validatedData);
             return response()->json($registro, 201);
@@ -179,27 +167,14 @@ class CatalogoCucopController extends Controller
     public function update(Request $request, CatalogoCambCucop $catalogo)
     {
         $validatedData = $request->validate([
-            'tipo' => 'required|string|max:255',
             'clave_cucop' => [
                 'required',
                 'integer',
                 Rule::unique('catalogo_camb_cucop', 'clave_cucop')->ignore($catalogo->getKey()),
             ],
-            'partida_especifica' => 'nullable|string|max:255',
-            'clave_cucop_plus' => 'nullable|string|max:255',
             'descripcion' => 'required|string',
-            'nivel' => 'nullable|string|max:255',
             'camb' => 'nullable|string|max:255',
-            'unidad_medida' => 'nullable|string|max:255',
-            'tipo_contratacion' => 'nullable|string|max:255',
         ]);
-
-        // Forzamos los valores constantes
-        $validatedData['tipo'] = '1';
-        $validatedData['nivel'] = '5';
-        $validatedData['unidad_medida'] = 'pieza';
-        $validatedData['tipo_contratacion'] = 'adquisiciones';
-
         try {
             $catalogo->update($validatedData);
             return response()->json($catalogo, 200);
@@ -224,7 +199,7 @@ class CatalogoCucopController extends Controller
     {
         try {
             $catalogo->delete();
-            return response()->json(null, 204); // 204 No Content
+            return response()->json(null, 204); 
         } catch (Throwable $e) {
             // Esto capturará excepciones como QueryException si hay FKs asociados
             return response()->json(['error' => 'No se pudo eliminar el registro.', 'message' => $e->getMessage()], 500);

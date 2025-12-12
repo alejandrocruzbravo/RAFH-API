@@ -60,11 +60,8 @@ class ResguardanteController extends Controller
      */
     public function index(Request $request)
     {
-        // Inicia la consulta
         $query = Resguardante::with('departamento.area', 'oficina.edificio')
-            // Usa LEFT JOIN para incluir resguardantes sin usuario
             ->leftJoin('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
-            // Selecciona todas las columnas de 'resguardantes' y el 'rol' del usuario (si existe)
             ->select('resguardantes.*', 'usuarios.usuario_id_rol');
         // Lógica de búsqueda
         if ($request->filled('search')) {
@@ -76,17 +73,41 @@ class ResguardanteController extends Controller
                   ->orWhere('resguardantes.res_rfc', 'like', "%{$searchTerm}%");
             });
         }
-        // Ordena por el ID del resguardante (usando 'latest' en la tabla principal)
         $resguardantes = $query->latest('resguardantes')->paginate(10);
         return $resguardantes;
     }
-    /**
-     * Almacena un nuevo resguardante.
-     */
 
-     public function store(Request $request)
-     {
-         // 1. Validación (ahora incluye res_curp)
+    /**
+     * @OA\Post(
+     * path="/resguardantes",
+     * summary="Crear un nuevo resguardante",
+     * tags={"Resguardantes"},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"res_nombre", "res_apellidos", "res_puesto", "res_departamento"},
+     * @OA\Property(property="res_nombre", type="string", example="Juan"),
+     * @OA\Property(property="res_apellidos", type="string", example="Pérez"),
+     * @OA\Property(property="res_puesto", type="string", example="Analista"),
+     * @OA\Property(property="res_departamento", type="integer", example=5, description="ID del departamento"),
+     * @OA\Property(property="res_rfc", type="string", example="ABCD800101XYZ"),
+     * @OA\Property(property="res_curp", type="string", example="ABCD800101HDFRRN01"),
+     * @OA\Property(property="res_telefono", type="string", example="5551234567"),
+     * @OA\Property(property="id_oficina", type="integer", nullable=true, example=2),
+     * @OA\Property(property="res_correo", type="string", format="email", example="juan@example.com")
+     * )
+     * ),
+     * @OA\Response(
+     * response=201,
+     * description="Resguardante creado",
+     * @OA\JsonContent(ref="#/components/schemas/Resguardante")
+     * ),
+     * @OA\Response(response=422, description="Error de validación")
+     * )
+     */
+    public function store(Request $request)
+    {
+         // 1. Validación 
          $validatedData = $request->validate([
              'res_nombre' => 'required|string|max:255',
              'res_apellidos' => 'required|string|max:255',
@@ -104,19 +125,57 @@ class ResguardanteController extends Controller
  
          // 3. Devolver el resguardante creado
          return response()->json($resguardante->load('departamento.area', 'oficina.edificio'), 201);
-     }
+    }
 
 
     /**
-     * Muestra un resguardante específico.
+     * @OA\Get(
+     * path="/resguardantes/{id}",
+     * summary="Obtener detalles de un resguardante",
+     * tags={"Resguardantes"},
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Detalles del resguardante con relaciones",
+     * @OA\JsonContent(ref="#/components/schemas/Resguardante")
+     * ),
+     * @OA\Response(response=404, description="No encontrado")
+     * )
      */
     public function show(Resguardante $resguardante)
     {
         return $resguardante->load('departamento.area', 'usuario','oficina.edificio');
     }
 
-/**
-     * Actualiza un resguardante y su usuario correspondiente.
+    /**
+     * @OA\Put(
+     * path="/resguardantes/{id}",
+     * summary="Actualizar resguardante",
+     * description="Actualiza datos personales y sincroniza correo/nombre con el usuario de sistema asociado si existe.",
+     * tags={"Resguardantes"},
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"res_nombre", "res_apellidos", "res_puesto", "res_departamento"},
+     * @OA\Property(property="res_nombre", type="string"),
+     * @OA\Property(property="res_apellidos", type="string"),
+     * @OA\Property(property="res_puesto", type="string"),
+     * @OA\Property(property="res_departamento", type="integer"),
+     * @OA\Property(property="id_oficina", type="integer", nullable=true),
+     * @OA\Property(property="res_rfc", type="string", nullable=true),
+     * @OA\Property(property="res_curp", type="string", nullable=true),
+     * @OA\Property(property="res_correo", type="string", format="email"),
+     * @OA\Property(property="usuario_id_rol", type="integer", nullable=true, description="ID del rol a actualizar en el usuario asociado")
+     * )
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Resguardante actualizado",
+     * @OA\JsonContent(ref="#/components/schemas/Resguardante")
+     * ),
+     * @OA\Response(response=500, description="Error en transacción")
+     * )
      */
     public function update(Request $request, Resguardante $resguardante)
     {
@@ -137,18 +196,16 @@ class ResguardanteController extends Controller
             'usuario_id_rol' => 'nullable|integer|exists:roles,id|gte:3'
         ]);
 
-        // (La lógica para actualizar el correo/nombre del usuario si existe es la misma)
         if ($resguardante->res_correo !== $validatedData['res_correo'] && $resguardante->res_id_usuario) {
             try {
                 DB::beginTransaction();
                 // 2. Actualizar el perfil del Resguardante
-                // (El $validatedData extra de 'usuario_id_rol' es ignorado por $fillable, lo cual está bien)
                 $resguardante->update($validatedData);
-                // 3. Actualizar el Usuario (si existe)
+                // 3. Actualizar el Usuario
                 if ($resguardante->res_id_usuario) {
                     $usuario = Usuario::find($resguardante->res_id_usuario);
                     if ($usuario) {
-                        // Prepara los datos a actualizar (sincronizar nombre y correo)
+                        // Prepara los datos a actualizar (sincroniza nombre y correo)
                         $usuarioData = [
                             'usuario_correo' => $validatedData['res_correo'],
                             'usuario_nombre' => $validatedData['res_nombre'] . ' ' . $validatedData['res_apellidos'],
@@ -175,8 +232,25 @@ class ResguardanteController extends Controller
         }
         return response()->json($resguardante->load('departamento.area', 'usuario.rol', 'oficina.edificio'), 200);
     }
-/**
-     * Elimina un resguardante y su usuario asociado.
+
+    /**
+     * @OA\Delete(
+     * path="/resguardantes/{id}",
+     * summary="Eliminar resguardante",
+     * description="Elimina al resguardante y su usuario asociado. Falla si tiene bienes asignados.",
+     * tags={"Resguardantes"},
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Eliminado correctamente",
+     * @OA\JsonContent(@OA\Property(property="message", type="string"))
+     * ),
+     * @OA\Response(
+     * response=409,
+     * description="Conflicto: Tiene bienes asignados",
+     * @OA\JsonContent(@OA\Property(property="message", type="string"))
+     * )
+     * )
      */
     public function destroy(Resguardante $resguardante)
     {
@@ -218,7 +292,27 @@ class ResguardanteController extends Controller
     }
 
     /**
-     * Crea una cuenta de usuario para un resguardante existente.
+     * @OA\Post(
+     * path="/resguardantes/{id}/usuario",
+     * summary="Crear usuario de sistema para un resguardante",
+     * tags={"Resguardantes"},
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"usuario_pass", "usuario_correo"},
+     * @OA\Property(property="usuario_pass", type="string", format="password", minLength=8),
+     * @OA\Property(property="usuario_correo", type="string", format="email"),
+     * @OA\Property(property="usuario_id_rol", type="integer", nullable=true)
+     * )
+     * ),
+     * @OA\Response(
+     * response=201,
+     * description="Usuario creado y vinculado",
+     * @OA\JsonContent(ref="#/components/schemas/Resguardante")
+     * ),
+     * @OA\Response(response=409, description="El resguardante ya tiene usuario")
+     * )
      */
     public function crearUsuario(Request $request, Resguardante $resguardante)
     {
@@ -272,6 +366,24 @@ class ResguardanteController extends Controller
         return response()->json($resguardante->load('usuario.rol'), 201);
     }
 
+    /**
+     * @OA\Get(
+     * path="/resguardantes/{id}/bienes",
+     * summary="Listar bienes asignados a un resguardante (Admin)",
+     * tags={"Resguardantes"},
+     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * @OA\Parameter(name="search", in="query", required=false, @OA\Schema(type="string")),
+     * @OA\Parameter(name="estado", in="query", required=false, @OA\Schema(type="string")),
+     * @OA\Response(
+     * response=200,
+     * description="Lista paginada de bienes",
+     * @OA\JsonContent(
+     * @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Bien")),
+     * @OA\Property(property="total", type="integer")
+     * )
+     * )
+     * )
+     */
     public function bienesAsignados(Request $request , $id)
     {
         $query = Bien::where('id_resguardante', $id);
@@ -294,6 +406,20 @@ class ResguardanteController extends Controller
         return response()->json($bienes);
     }
 
+    /**
+     * @OA\Get(
+     * path="/oficinas/{id}/resguardantes",
+     * summary="Listar resguardantes por oficina",
+     * tags={"Resguardantes"},
+     * @OA\Parameter(name="id", in="path", description="ID de la oficina", required=true, @OA\Schema(type="integer")),
+     * @OA\Response(
+     * response=200,
+     * description="Lista de resguardantes en la oficina",
+     * @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Resguardante"))
+     * ),
+     * @OA\Response(response=404, description="Oficina no encontrada")
+     * )
+     */
     public function indexByOficina($oficinaId)
     {
         // Opcional: Verificar que la oficina exista primero
@@ -308,6 +434,23 @@ class ResguardanteController extends Controller
 
         return response()->json($resguardantes);
     }
+
+    /**
+     * @OA\Get(
+     * path="/mis-bienes",
+     * summary="Obtener mis bienes (Perfil Resguardante)",
+     * description="Lista paginada de los bienes asignados al usuario autenticado.",
+     * tags={"Perfil Resguardante"},
+     * @OA\Response(
+     * response=200,
+     * description="Mis bienes",
+     * @OA\JsonContent(
+     * @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Bien"))
+     * )
+     * ),
+     * @OA\Response(response=403, description="Usuario sin perfil de resguardante")
+     * )
+     */
     public function misBienes(Request $request)
     {
         $user = $request->user();
@@ -341,6 +484,30 @@ class ResguardanteController extends Controller
         return response()->json($query->paginate(15));
     }
 
+    /**
+     * @OA\Get(
+     * path="/resguardantes/search",
+     * summary="Búsqueda rápida de resguardantes (Autocomplete)",
+     * description="Busca resguardantes por nombre o correo (usuario). Excluye al usuario actual.",
+     * tags={"Resguardantes"},
+     * @OA\Parameter(name="query", in="query", required=true, @OA\Schema(type="string", minLength=3)),
+     * @OA\Response(
+     * response=200,
+     * description="Resultados simplificados",
+     * @OA\JsonContent(
+     * type="array",
+     * @OA\Items(
+     * type="object",
+     * @OA\Property(property="id", type="integer"),
+     * @OA\Property(property="nombre", type="string"),
+     * @OA\Property(property="correo", type="string"),
+     * @OA\Property(property="cargo", type="string"),
+     * @OA\Property(property="tiene_usuario", type="boolean")
+     * )
+     * )
+     * )
+     * )
+     */
     public function search(Request $request)
     {
         $queryText = $request->input('query');
@@ -397,6 +564,19 @@ class ResguardanteController extends Controller
 
         return response()->json($data);
     }
+
+    /**
+     * @OA\Get(
+     * path="/mis-movimientos",
+     * summary="Obtener mis movimientos físicos",
+     * tags={"Perfil Resguardante"},
+     * @OA\Response(
+     * response=200,
+     * description="Historial de movimientos iniciados por mi",
+     * @OA\JsonContent(@OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/MovimientoBien")))
+     * )
+     * )
+     */
     public function misMovimientos(Request $request)
     {
         $user = $request->user();
@@ -414,6 +594,19 @@ class ResguardanteController extends Controller
 
         return response()->json($movimientos);
     }
+
+    /**
+     * @OA\Get(
+     * path="/mis-transferencias",
+     * summary="Obtener mis traspasos (Origen/Destino)",
+     * tags={"Perfil Resguardante"},
+     * @OA\Response(
+     * response=200,
+     * description="Historial de solicitudes de traspaso",
+     * @OA\JsonContent(@OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Traspaso")))
+     * )
+     * )
+     */
     public function misTransferencias(Request $request)
     {
         $user = $request->user();
@@ -441,6 +634,32 @@ class ResguardanteController extends Controller
 
         return response()->json($traspasos);
     }
+
+    /**
+     * @OA\Get(
+     * path="/resguardante/dashboard",
+     * summary="Dashboard del Resguardante",
+     * description="Métricas rápidas y últimos movimientos para la pantalla de inicio del app móvil.",
+     * tags={"Perfil Resguardante"},
+     * @OA\Response(
+     * response=200,
+     * description="Datos del dashboard",
+     * @OA\JsonContent(
+     * @OA\Property(property="contadores", type="object",
+     * @OA\Property(property="bienes", type="integer"),
+     * @OA\Property(property="movimientos", type="integer"),
+     * @OA\Property(property="transferencias", type="integer")
+     * ),
+     * @OA\Property(property="info", type="object",
+     * @OA\Property(property="oficina", type="string"),
+     * @OA\Property(property="departamento", type="string")
+     * ),
+     * @OA\Property(property="ultimos_movimientos", type="array", @OA\Items(ref="#/components/schemas/MovimientoBien"))
+     * )
+     * ),
+     * @OA\Response(response=404, description="Perfil no encontrado")
+     * )
+     */
     public function dashboard(Request $request)
     {
         $user = $request->user();

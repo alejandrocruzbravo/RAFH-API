@@ -4,13 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
-// --- IMPORTACIONES FALTANTES ---
 use App\Models\Departamento;
 use App\Models\Edificio;
 use App\Models\Resguardante;
-use App\Models\Oficina; // Necesario para la nueva relación
-
+use App\Models\Oficina;
+/**
+ * @OA\Schema(
+ * schema="Area",
+ * title="Area",
+ * description="Modelo de Área",
+ * @OA\Property(property="id", type="integer", example=1),
+ * @OA\Property(property="area_nombre", type="string", example="Recursos Humanos"),
+ * @OA\Property(property="area_codigo", type="string", example="RH-001"),
+ * @OA\Property(property="created_at", type="string", format="date-time"),
+ * @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class Area extends Model
 {
     use HasFactory;
@@ -20,7 +29,7 @@ class Area extends Model
     protected $fillable = [
         'area_nombre',
         'area_codigo',
-        'id_resguardante_responsable',
+        //'id_resguardante_responsable',
         'id_edificio',
     ];
 
@@ -34,10 +43,12 @@ class Area extends Model
         return $this->belongsTo(Edificio::class, 'id_edificio');
     }
 
-    public function responsable() 
+    /*public function responsable() 
     {
         return $this->belongsTo(Resguardante::class, 'id_resguardante_responsable');
-    }
+    }*/
+
+        
     /**
      * Obtiene todas las oficinas que pertenecen a esta área
      * a través de sus departamentos.

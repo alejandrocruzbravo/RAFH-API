@@ -19,7 +19,6 @@ class DepartamentosSeeder extends Seeder
         foreach ($nombres as $nombre) {
             \App\Models\Departamento::factory()->create([
                 'dep_nombre' => $nombre,
-                // La factory se encarga de inventar el código y lo demás automáticamente
             ]);
         }
     }

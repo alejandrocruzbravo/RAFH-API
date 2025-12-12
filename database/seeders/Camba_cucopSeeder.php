@@ -27,15 +27,10 @@ class Camba_cucopSeeder extends Seeder
 
             
             $batch[] = [
-                        'tipo' => $row[0],
                         'clave_cucop' => $row[1],
                         'partida_especifica' => $row[2],
-                        'clave_cucop_plus' => $row[3],
                         'descripcion' => $row[4],
-                        'nivel' => $row[5],
                         'camb' => $row[6],
-                        'unidad_medida' => $row[7],
-                        'tipo_contratacion' => $row[8],
                         ];
 
             if (count($batch) === $batchSize) {

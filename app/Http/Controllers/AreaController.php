@@ -10,28 +10,22 @@ use Illuminate\Validation\Rule;
 
 /**
  * @OA\Tag(
- * name="Áreas",
- * description="Endpoints para la gestión de Áreas Generales (ej. Subdirecciones)"
+ * name="Areas",
+ * description="Endpoints para la gestión de Áreas, Edificios y Responsables"
  * )
  */
 class AreaController extends Controller
 {
     /**
-     * Listar Áreas
-     *
-     * Obtiene todas las áreas registradas, incluyendo información resumida de sus departamentos, edificio y responsable.
-     *
      * @OA\Get(
      * path="/areas",
-     * tags={"Áreas"},
+     * tags={"Areas"},
      * summary="Listar todas las áreas",
+     * description="Retorna un listado de áreas con sus departamentos, edificio y responsable.",
      * @OA\Response(
      * response=200,
-     * description="Lista de áreas",
-     * @OA\JsonContent(
-     * type="array",
-     * @OA\Items(type="object")
-     * )
+     * description="Operación exitosa",
+     * @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Area"))
      * )
      * )
      */
@@ -40,184 +34,213 @@ class AreaController extends Controller
         $areas = Area::with([
             'departamentos:id,dep_nombre',
             'edificio:id,nombre',
-            'responsable:id,res_nombre,res_apellidos' 
         ])->get();
 
         return response()->json($areas);
     }
-
-    /**
-     * Crear Área
-     *
-     * Registra una nueva área. Valida que el responsable tenga el rol de 'Subdirector'.
-     *
+/**
      * @OA\Post(
      * path="/areas",
-     * tags={"Áreas"},
      * summary="Crear una nueva área",
+     * tags={"Areas"},
      * @OA\RequestBody(
      * required=true,
      * @OA\JsonContent(
-     * required={"area_nombre", "area_codigo"},
-     * @OA\Property(property="area_nombre", type="string", example="Subdirección Académica"),
-     * @OA\Property(property="area_codigo", type="string", example="002"),
-     * @OA\Property(property="id_resguardante_responsable", type="integer", description="ID del resguardante (Debe ser Subdirector)", nullable=true),
-     * @OA\Property(property="id_edificio", type="integer", description="ID del edificio principal", nullable=true)
+     * required={"name"},
+     * @OA\Property(property="name", type="string", example="Almacén B", description="Nombre del área"),
+     * @OA\Property(property="description", type="string", example="Sector de fríos", description="Descripción opcional")
      * )
      * ),
      * @OA\Response(
-     * response=201,
-     * description="Área creada exitosamente",
-     * @OA\JsonContent(type="object")
-     * ),
-     * @OA\Response(
-     * response=422,
-     * description="Error de validación (código duplicado o responsable inválido)"
+     * response=200,
+     * description="Área creada exitosamente"
      * )
      * )
      */
     public function store(Request $request)
     {
-        // Validación de la Regla 2: Responsable debe ser Subdirector
-        $subdirectores = DB::table('resguardantes')
-            ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
-            ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id')
-            ->where('roles.rol_nombre', 'Subdirector') // Ajusta este nombre de rol
-            ->pluck('resguardantes.id');
 
         $datosValidados = $request->validate([
             'area_nombre' => 'required|string|max:255',
             'area_codigo' => 'required|string|unique:areas,area_codigo',
-            
-            // Validaciones de las llaves foráneas (nulables)
-            'id_resguardante_responsable' => [
-                'nullable',
-                'integer',
-                Rule::in($subdirectores) // ¡La regla de negocio clave!
-            ],
             'id_edificio' => 'nullable|integer|exists:edificios,id',
-            //'id_departamento' => 'nullable|integer|exists:departamentos,id',
         ]);
 
         $area = Area::create($datosValidados);
 
         return response()->json($area, 201);
     }
-
     /**
-     * Ver Área
-     *
-     * Muestra los detalles de un área específica.
-     *
      * @OA\Get(
      * path="/areas/{id}",
-     * tags={"Áreas"},
-     * summary="Obtener detalles de un área",
-     * @OA\Parameter(name="id", in="path", required=true, description="ID del área", @OA\Schema(type="integer")),
+     * summary="Obtener detalles de un área específica",
+     * description="Retorna la información del área junto con su edificio, responsable y departamentos asociados.",
+     * tags={"Areas"},
+     * @OA\Parameter(
+     * name="id",
+     * in="path",
+     * description="ID del área",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
      * @OA\Response(
      * response=200,
-     * description="Datos del área",
-     * @OA\JsonContent(type="object")
+     * description="Detalles del área encontrados",
+     * @OA\JsonContent(
+     * type="object",
+     * @OA\Property(property="id", type="integer", example=1),
+     * @OA\Property(property="area_nombre", type="string", example="Dirección de TI"),
+     * @OA\Property(property="area_codigo", type="string", example="TI-001"),
+     * * @OA\Property(
+     * property="edificio",
+     * type="object",
+     * description="Datos del edificio (cargado con load)",
+     * nullable=true,
+     * @OA\Property(property="id", type="integer", example=3),
+     * @OA\Property(property="nombre", type="string", example="Edificio Central")
      * ),
-     * @OA\Response(response=404, description="Área no encontrada")
+     * * @OA\Property(
+     * property="responsable",
+     * type="object",
+     * description="Datos del responsable (cargado con load)",
+     * nullable=true,
+     * @OA\Property(property="id", type="integer", example=10),
+     * @OA\Property(property="res_nombre", type="string", example="Carlos"),
+     * @OA\Property(property="res_apellidos", type="string", example="López")
+     * ),
+     * * @OA\Property(
+     * property="departamentos",
+     * type="array",
+     * description="Lista de departamentos asociados",
+     * @OA\Items(
+     * type="object",
+     * @OA\Property(property="id", type="integer", example=45),
+     * @OA\Property(property="dep_nombre", type="string", example="Soporte Técnico")
+     * )
+     * )
+     * )
+     * ),
+     * @OA\Response(
+     * response=404,
+     * description="Área no encontrada"
+     * )
      * )
      */
     public function show(string $id)
     {
         $area = Area::findOrFail($id);
         $area->load('departamentos:id,dep_nombre', 
-                    'edificio:id,nombre', 
-                    'responsable:id,res_nombre,res_apellidos');
+                    'edificio:id,nombre');
 
         return response()->json($area);
     }
 
-    /**
-     * Actualizar Área
-     *
+/**
      * @OA\Put(
      * path="/areas/{id}",
-     * tags={"Áreas"},
-     * summary="Actualizar información de un área",
-     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * summary="Actualizar un área existente",
+     * tags={"Areas"},
+     * @OA\Parameter(
+     * name="id",
+     * in="path",
+     * description="ID del área a actualizar",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
      * @OA\RequestBody(
      * required=true,
+     * description="Datos del área a actualizar",
      * @OA\JsonContent(
      * required={"area_nombre", "area_codigo"},
-     * @OA\Property(property="area_nombre", type="string"),
-     * @OA\Property(property="area_codigo", type="string"),
-     * @OA\Property(property="id_resguardante_responsable", type="integer", nullable=true),
-     * @OA\Property(property="id_edificio", type="integer", nullable=true)
+     * @OA\Property(property="area_nombre", type="string", example="Dirección General", description="Nombre del área"),
+     * @OA\Property(property="area_codigo", type="string", example="DG-001", description="Código único del área"),
+     * @OA\Property(property="id_resguardante_responsable", type="integer", nullable=true, example=5, description="ID del usuario subdirector responsable"),
+     * @OA\Property(property="id_edificio", type="integer", nullable=true, example=2, description="ID del edificio asociado")
      * )
      * ),
-     * @OA\Response(response=200, description="Área actualizada"),
-     * @OA\Response(response=422, description="Error de validación")
+     * @OA\Response(
+     * response=200,
+     * description="Área actualizada correctamente",
+     * @OA\JsonContent(
+     * type="object",
+     * @OA\Property(property="id", type="integer", example=1),
+     * @OA\Property(property="area_nombre", type="string", example="Dirección General"),
+     * @OA\Property(property="area_codigo", type="string", example="DG-001"),
+     * @OA\Property(property="updated_at", type="string", format="date-time")
+     * )
+     * ),
+     * @OA\Response(
+     * response=422,
+     * description="Error de validación (ej. código duplicado o resguardante inválido)"
+     * ),
+     * @OA\Response(
+     * response=404,
+     * description="Área no encontrada"
+     * )
      * )
      */
     public function update(Request $request, Area $area)
     {
-        $subdirectoresIds = DB::table('resguardantes')
-            ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
-            ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id')
-            ->where('roles.rol_nombre', 'Subdirector')
-            ->pluck('resguardantes.id');
-
-        // 2. Validación
+        // Validación
         $datosValidados = $request->validate([
             'area_nombre' => 'required|string|max:255',
-            
             'area_codigo' => [
                 'required',
                 'string',
-                Rule::unique('areas')->ignore($area->id) // Ignora el ID actual
-            ],
-            
-            'id_resguardante_responsable' => [
-                'nullable',
-                'integer',
-                Rule::in($subdirectoresIds) // Valida que el ID esté en la lista
+                Rule::unique('areas')->ignore($area->id)
             ],
             'id_edificio' => 'nullable|integer|exists:edificios,id',
         ]);
 
-        // 3. Actualizamos el área
+        // Actualizamos el área
         $area->update($datosValidados);
 
-        // 4. Devolvemos el área actualizada
+        // Devolvemos el área actualizada
         return response()->json($area);
     }
 
     /**
-     * Eliminar Área
-     *
      * @OA\Delete(
      * path="/areas/{id}",
-     * tags={"Áreas"},
      * summary="Eliminar un área",
-     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * description="Elimina un área solo si no tiene departamentos ni bienes asociados.",
+     * tags={"Areas"},
+     * @OA\Parameter(
+     * name="id",
+     * in="path",
+     * description="ID del área a eliminar",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
      * @OA\Response(
      * response=204,
-     * description="Eliminado exitosamente"
+     * description="Área eliminada correctamente (Sin contenido)"
      * ),
      * @OA\Response(
      * response=409,
-     * description="Conflicto: No se puede eliminar porque tiene departamentos o bienes asociados"
+     * description="Conflicto: No se puede eliminar porque tiene dependencias",
+     * @OA\JsonContent(
+     * @OA\Property(property="message", type="string", example="No se puede eliminar el área. Aún tiene departamentos asociados.")
+     * )
      * ),
-     * @OA\Response(response=500, description="Error del servidor")
+     * @OA\Response(
+     * response=404,
+     * description="Área no encontrada"
+     * )
      * )
      */
     public function destroy(string $id)
     {
-        $area = Area::findOrFail($id); // Busca el área primero
+        $area = Area::findOrFail($id); 
     
-        // Chequeo 1: ¿Tiene departamentos asociados?
+        // Chequeo 1: Tiene departamentos asociados?
         if ($area->departamentos()->exists()) {
             return response()->json([
                 'message' => 'No se puede eliminar el área. Aún tiene departamentos asociados.'
-            ], 409); // 409 Conflict
+            ], 409); 
         }
         
-        // Chequeo 2: ¿Tiene bienes asociados (indirectamente)?
+        // Chequeo 2: Tiene bienes asociados (indirectamente)?
         $departamentoIds = $area->departamentos()->pluck('id');
         $bienesAsociados = Bien::whereIn('bien_id_dep', $departamentoIds)->count();
     
@@ -226,62 +249,66 @@ class AreaController extends Controller
                 'message' => 'No se puede eliminar el área. Sus departamentos aún tienen ' . $bienesAsociados . ' bienes asociados.'
             ], 409);
         }
-    
-        // Si todo está limpio, se elimina
         $area->delete();
         return response()->noContent();
     }
 
     /**
-     * Obtener Estructura Jerárquica
-     *
-     * Devuelve la lista de departamentos y oficinas que pertenecen a esta área.
-     *
      * @OA\Get(
      * path="/areas/{id}/structure",
-     * tags={"Áreas"},
-     * summary="Obtener estructura (Deptos -> Oficinas)",
-     * @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     * summary="Obtener estructura jerárquica del área",
+     * description="Retorna los departamentos del área y sus respectivas oficinas.",
+     * tags={"Areas"},
+     * @OA\Parameter(
+     * name="id",
+     * in="path",
+     * description="ID del área",
+     * required=true,
+     * @OA\Schema(type="integer")
+     * ),
      * @OA\Response(
      * response=200,
-     * description="Estructura jerárquica",
+     * description="Estructura completa encontrada",
      * @OA\JsonContent(
      * type="array",
      * @OA\Items(
      * type="object",
-     * @OA\Property(property="id", type="integer"),
-     * @OA\Property(property="dep_nombre", type="string"),
-     * @OA\Property(
-     * property="oficinas",
-     * type="array",
+     * @OA\Property(property="id", type="integer", example=10),
+     * @OA\Property(property="dep_nombre", type="string", example="Recursos Humanos"),
+     * @OA\Property(property="dep_codigo", type="string", example="RH-01"),
+     * @OA\Property(property="oficinas", type="array",
      * @OA\Items(
      * type="object",
-     * @OA\Property(property="id", type="integer"),
-     * @OA\Property(property="nombre", type="string"),
-     * @OA\Property(property="ofi_codigo", type="string")
+     * @OA\Property(property="id", type="integer", example=5),
+     * @OA\Property(property="nombre", type="string", example="Oficina de Nóminas"),
+     * @OA\Property(property="ofi_codigo", type="string", example="NOM-01")
      * )
      * )
      * )
      * )
+     * ),
+     * @OA\Response(
+     * response=404,
+     * description="Área no encontrada"
      * )
      * )
      */
     public function getStructure(Area $area)
     {
-        // 1. Inicia la consulta en los departamentos de ESTA área
+        // Inicia la consulta en los departamentos de ESTA área
         $structure = $area->departamentos()
             ->with([
-                // 2. Carga la relación 'oficinas' para CADA departamento
+                // Carga la relación 'oficinas' para CADA departamento
                 'oficinas' => function ($query) {
                     // 3. Selecciona solo las columnas que necesitas de las oficinas
                     $query->select('id', 'nombre', 'ofi_codigo', 'id_departamento');
                 }
             ])
-            // 4. Selecciona solo las columnas que necesitas de los departamentos
+            // Selecciona solo las columnas que necesitas de los departamentos
             ->select('id', 'dep_nombre', 'dep_codigo', 'id_area')
             ->get();
 
-        // 5. Devuelve el JSON
         return response()->json($structure);
     }
+
 }

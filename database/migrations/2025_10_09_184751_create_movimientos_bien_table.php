@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('movimientos_bien', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('movimiento_id_bien')->constrained('bienes');
+            $table->foreignId('movimiento_id_bien')->constrained('bienes')->onDelete('cascade');;
             $table->foreignId('movimiento_id_dep')->constrained('departamentos');
             $table->timestamp('movimiento_fecha');
             $table->string('movimiento_tipo');
