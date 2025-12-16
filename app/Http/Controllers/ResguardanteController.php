@@ -708,4 +708,22 @@ class ResguardanteController extends Controller
             'ultimos_movimientos' => $ultimosMovimientos
         ]);
     }
+
+    public function historial($id)
+{
+    $movimientos = DB::table('movimientos_bien') 
+        ->join('bienes', 'movimientos_bien.movimiento_id_bien', '=', 'bienes.id')
+        ->where('movimientos_bien.movimiento_id_usuario_origen', $id)
+        ->select(
+            'movimientos_bien.id',
+            'movimientos_bien.movimiento_tipo', 
+            'movimientos_bien.created_at as fecha',
+            'bienes.bien_descripcion',
+            'bienes.bien_codigo'
+        )
+        ->orderBy('movimientos_bien.created_at', 'desc')
+        ->get();
+
+    return response()->json($movimientos);
+}
 }

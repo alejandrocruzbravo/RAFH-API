@@ -81,7 +81,8 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('/oficinas/{id}/resguardantes', [ResguardanteController::class, 'indexByOficina']); //
         Route::get('/admin/movimientos', [MovimientoBienController::class, 'index']);
         Route::get('/resguardantes/{id}/bienes-activos', [BienController::class, 'getBienesActivosPorResguardante']);
-
+        Route::get('/resguardantes/{id}/historial', [ResguardanteController::class, 'historial']);
+        
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
         Route::post('inventario/comparar', [BienController::class, 'compararInventario']);
         Route::post('/inventario/levantamiento', [BienController::class, 'procesarLevantamiento']);
