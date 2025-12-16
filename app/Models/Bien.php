@@ -70,6 +70,7 @@ class Bien extends Model
         'bien_clave',
         'bien_y',
         'bien_secuencia',
+        'bien_sec_alfabetica',
         'bien_provedor',
         'bien_numero_factura',
         'bien_ubicacion_actual'

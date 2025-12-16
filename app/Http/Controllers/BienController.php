@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Bien;
 use App\Models\Oficina;
 use App\Models\MovimientoBien;
+use App\Models\Resguardante;
+
 use App\Events\BienEstadoActualizado;
 use App\Events\NuevoMovimientoRegistrado;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -14,6 +17,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
+
 use Carbon\Carbon;
 use Throwable;
 
@@ -166,6 +170,7 @@ class BienController extends Controller
             'bien_marca' => 'nullable|string|max:255',
             'bien_clave' => 'required|string|max:255',
             'bien_y' => 'required|string|max:4',
+            'bien_sec_alfabetica' => 'nullable|string|max:5',
             'cantidad' => 'required|integer|min:1',
         ]);
 
@@ -377,13 +382,42 @@ class BienController extends Controller
 
     protected function procesarBaja(Request $request, Bien $biene)
     {
-        $biene->update([
-            'bien_estado' => 'Baja',
-        ]);
+        $resguardanteId = $biene->id_resguardante;
 
-        return response()->json([
-        'message' => 'El bien ha sido dado de baja correctamente', 
-        'data' => $biene,
+        DB::transaction(function () use ($request, $biene, $resguardanteId) {
+                //Actualizar estado del bien
+                $biene->update([
+                    'bien_estado' => 'Baja',
+                    'id_resguardante' => null,
+                    'bien_ubicacion_actual' => 9,
+                    'id_oficina' => 9,
+                ]);
+
+                // Obtenemos el usuario autenticado (el que realiza la baja)
+                $userId = auth()->id(); // O $request->user()->id
+
+                $movimientoIdDep = null;
+                if (!empty($biene['id_oficina'])) {
+                    $oficina = Oficina::find($biene['id_oficina']);
+                    $movimientoIdDep = $oficina ? $oficina->id_departamento : null;
+                }
+                MovimientoBien::create([
+                    'movimiento_id_bien' => $biene->id,
+                    'movimiento_id_dep' => $movimientoIdDep,
+                    'movimiento_fecha' => now(),
+                    'movimiento_tipo' => 'BAJA',
+                    'movimiento_cantidad' => 1,
+                    'movimiento_id_usuario_origen' => $userId,
+                    'movimiento_id_usuario_destino' => $userId, 
+                    'movimiento_id_usuario_autorizado' => $userId, 
+                    'movimiento_observaciones' => $request->input('observaciones', 'Baja de bien'),
+                ]);
+            });
+
+            return response()->json([
+                'message' => 'El bien ha sido dado de baja y el movimiento registrado correctamente.',
+                'data' => $biene,
+                'resguardante_afectado_id' => $resguardanteId
         ]);
     }
 
@@ -476,6 +510,7 @@ class BienController extends Controller
             'bien_marca'            => 'sometimes|nullable|string|max:255',
             'bien_modelo'           => 'sometimes|nullable|string|max:255',
             'bien_serie'            => 'sometimes|nullable|string|max:255',
+            'bien_sec_alfabetica'            => 'sometimes|nullable|string|max:255',
             'bien_estado'           => 'sometimes|required|string|max:50',
             'id_oficina'            => 'sometimes|required|integer|exists:oficinas,id',
             'id_resguardante'       => 'sometimes|nullable|integer|exists:resguardantes,id',
@@ -495,17 +530,72 @@ class BienController extends Controller
     protected function procesarReactivacion(Request $request, Bien $biene)
     {
         $datos = $request->validate([
-            'id_oficina' => 'required|exists:oficinas,id',
+            'id_oficina' => 'required|exists:oficinas,id', // Oficina Física seleccionada
+            'id_resguardante' => 'nullable|exists:resguardantes,id',
         ]);
-        $biene->update([
-            'bien_estado' => 'Activo',
-            'id_oficina'  => $datos['id_oficina'],
-        ]);
+
+        DB::transaction(function () use ($biene, $datos) {
+            
+            // --- LÓGICA DE TRÁNSITO vs ACTIVO ---
+            $nuevoEstado = 'Activo';
+            $idOficinaDueño = $datos['id_oficina']; // Por defecto, el bien pertenece donde está físicamente
+            $ubicacionFisica = $datos['id_oficina'];
+            $observacionesMov = 'Reactivación de bien.';
+
+            // Si se seleccionó un resguardante, verificamos su oficina
+            if (!empty($datos['id_resguardante'])) {
+                $resguardante = Resguardante::find($datos['id_resguardante']);
+                
+                if ($resguardante) {
+                    // CASO DISCREPANCIA: Resguardante es de otra oficina
+                    if ($resguardante->id_oficina != $datos['id_oficina']) {
+                        $nuevoEstado = 'En tránsito';
+                        $idOficinaDueño = $resguardante->id_oficina; // El bien pertenece a la oficina del resguardante
+                        $ubicacionFisica = $datos['id_oficina']; // Pero físicamente está donde dijimos en el modal
+                        $observacionesMov = 'Reactivación: Resguardante externo. Bien en tránsito hacia oficina del resguardante.';
+                    } else {
+                        $observacionesMov = 'Reactivación con asignación de resguardo.';
+                    }
+                }
+            }
+
+            // 1. Actualizar el bien
+            $biene->update([
+                'bien_estado' => $nuevoEstado,
+                'id_oficina' => $idOficinaDueño,           // A quién pertenece (Inventarialmente)
+                'bien_ubicacion_actual' => $ubicacionFisica, // Dónde está (Físicamente)
+                'id_resguardante' => $datos['id_resguardante'] ?? null,
+            ]);
+
+            // 2. Registrar movimiento
+            $userId = auth()->id();
+            
+            // Obtenemos el departamento asociado a la ubicación FÍSICA para el historial
+            $movimientoIdDep = null;
+            if (!empty($ubicacionFisica)) {
+                $oficinaFisica = Oficina::find($ubicacionFisica);
+                $movimientoIdDep = $oficinaFisica ? $oficinaFisica->id_departamento : null;
+            }
+
+            MovimientoBien::create([
+                'movimiento_id_bien' => $biene->id,
+                'movimiento_id_dep' => $movimientoIdDep,
+                'movimiento_fecha' => now(),
+                'movimiento_tipo' => 'Reactivación', // O podrías poner 'Reactivación (Tránsito)' si prefieres
+                'movimiento_cantidad' => 1,
+                'movimiento_id_usuario_origen' => $userId,
+                'movimiento_id_usuario_destino' => $userId,
+                'movimiento_id_usuario_autorizado' => $userId,
+                'movimiento_observaciones' => $observacionesMov,
+            ]);
+        });
+
         $biene->refresh();
 
         return response()->json([
-            'message' => 'El bien ha sido reactivado y reasignado correctamente',
-            'data'    => $biene
+            'message' => 'El bien ha sido procesado correctamente.',
+            'data' => $biene,
+            'resguardante_asignado_id' => $datos['id_resguardante'] ?? null
         ]);
     }
 
@@ -657,18 +747,25 @@ class BienController extends Controller
      * )
      * )
      */
-    public function bajas()
+    public function bajas(Request $request)
     {
-        // Buscamos todos los bienes donde 'bien_estado' sea 'Baja'
-        $bienesBaja = Bien::where('bien_estado', 'Baja')
-                            ->with(['oficina', 'resguardos']) //Carga relaciones para no hacer consultas extra
-                            ->get();
+        // Iniciamos la consulta filtrando por estado 'Baja'
+        $query = Bien::where('bien_estado', 'Baja')
+                    ->with(['oficina', 'resguardos']);
 
-        return response()->json([
-            'success' => true,
-            'cantidad' => $bienesBaja->count(),
-            'data' => $bienesBaja
-        ], 200);
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('bien_codigo', 'LIKE', "%{$search}%")
+                ->orWhere('bien_descripcion', 'LIKE', "%{$search}%")
+                ->orWhere('bien_marca', 'LIKE', "%{$search}%")
+                ->orWhere('bien_modelo', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $bienesBaja = $query->orderBy('updated_at', 'desc')->paginate(10);
+
+        return response()->json($bienesBaja);
     }
     /**
      * @OA\Get(
@@ -964,4 +1061,66 @@ class BienController extends Controller
         return null; 
     }
     protected $appends = ['foto_url'];
+
+    public function getBienesActivosPorResguardante($id)
+    {
+        // Buscamos directamente por ID de resguardante y Estado Activo
+        $bienes = Bien::where('id_resguardante', $id)
+                    ->where('bien_estado', 'Activo') // Solo queremos lo que sigue vigente
+                    ->with(['oficina', 'resguardos']) // Cargamos relaciones necesarias para el PDF
+                    ->orderBy('updated_at', 'desc')
+                    ->get(); // Usamos get() para traer TODOS sin paginación
+
+        return response()->json([
+            'success' => true,
+            'data' => $bienes
+        ]);
+    }
+
+    public function bienesPorDepartamento(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Validar Rol (Solo Jefes de Depto - ID 4)
+        if ($user->usuario_id_rol !== 4) {
+            return response()->json(['message' => 'No tienes permisos de Jefe de Departamento.'], 403);
+        }
+
+        if (!$user->resguardante || !$user->resguardante->oficina) {
+            return response()->json(['message' => 'Tu usuario no tiene una oficina/departamento asociado.'], 403);
+        }
+
+        // 2. Obtener el ID del Departamento del Jefe
+        // Asumimos: Jefe -> Resguardante -> Oficina -> Departamento
+        $departamentoId = $user->resguardante->oficina->id_departamento;
+
+        // 3. Consulta
+        $query = Bien::query()
+            ->with([
+                'oficina',                     // Para ver en qué oficina está
+                'resguardos.resguardante',     // Para ver quién lo tiene (si está asignado)
+                'ubicacionActual'              // Por si está en tránsito
+            ])
+            // Filtramos bienes donde la oficina del bien pertenezca al mismo departamento
+            ->whereHas('oficina', function ($q) use ($departamentoId) {
+                $q->where('id_departamento', $departamentoId);
+            });
+
+        // --- Filtros (Buscador) ---
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('bien_descripcion', 'ILIKE', "%{$search}%")
+                ->orWhere('bien_codigo', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        // --- Filtro por Estado ---
+        if ($request->has('estado') && $request->estado) {
+            $query->where('bien_estado', $request->estado);
+        }
+
+        return response()->json($query->paginate(15));
+    }
+
 }

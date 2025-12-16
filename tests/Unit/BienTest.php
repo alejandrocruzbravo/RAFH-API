@@ -17,7 +17,7 @@ class BienTest extends TestCase
         $serie = 'ABC';
         $codigo = Bien::generarCodigo($serie);
 
-        // Concatenación: 'I'.0.'-23-'.'ABC' -> I0-23-ABC
+        //  'I'.0.'-23-'.'ABC' -> I0-23-ABC
         $this->assertEquals('I0-23-ABC', $codigo);
     }
 
@@ -30,11 +30,10 @@ class BienTest extends TestCase
         $serie = 'XYZ';
         $clave = 555;
         $fecha = Carbon::create(2025, 1, 1);
-
-        // Ejecución
+        
         $codigo = Bien::generarCodigo($serie, $clave, $fecha);
 
-        // Lógica: 'I'.$clave.'-'.$y->format('y').'-23-'.$serie
+        // L'I'.$clave.'-'.$y->format('y').'-23-'.$serie
         // Resultado esperado: I555-25-23-XYZ
         $this->assertEquals('I555-25-23-XYZ', $codigo);
     }

@@ -455,30 +455,26 @@ class ResguardanteController extends Controller
     {
         $user = $request->user();
 
-        // 1. Verificamos "a la mala" si el usuario tiene un resguardante asociado
-        // Usamos la relación que ya tienes en tu modelo Usuario
         if (!$user->resguardante) {
             return response()->json(['message' => 'Tu usuario no tiene perfil de resguardante asignado.'], 403);
         }
 
-        // 2. Obtenemos SU id automáticamente
+        // Obtenemos su id automáticamente
         $miResguardanteId = $user->resguardante->id;
 
-        // 3. Hacemos la consulta directa (copiada de tu lógica anterior)
         $query = Bien::with(['ubicacionActual', 'traspasoPendiente']) 
                 ->where('id_resguardante', $miResguardanteId);
         // Filtros (Search)
         if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->where('nombre', 'ILIKE', "%{$search}%")
-                ->orWhere('numero_serie', 'ILIKE', "%{$search}%");
+                $search = $request->input('search');
+                $query->where(function($q) use ($search) {
+                    $q->where('bien_descripcion', 'ILIKE', "%{$search}%")
+                    ->orWhere('bien_codigo', 'ILIKE', "%{$search}%");
             });
         }
-        
-        // Filtros extra (Estado/Categoria)
-        if ($request->has('estado')) {
-            $query->where('estado', $request->input('estado'));
+
+        if ($request->has('estado') && !empty($request->input('estado'))) {
+            $query->where('bien_estado', $request->input('estado'));
         }
 
         return response()->json($query->paginate(15));
@@ -510,58 +506,64 @@ class ResguardanteController extends Controller
      */
     public function search(Request $request)
     {
-        $queryText = $request->input('query');
+        // Aceptamos 'search' (que es lo que manda tu Front) o 'query' por compatibilidad
+        $queryText = $request->input('search') ?? $request->input('query');
         $currentUser = $request->user();
 
         if (!$queryText || strlen($queryText) < 3) {
             return response()->json([]);
         }
 
-        // ID del resguardante actual para no mostrarse a sí mismo
+        // ID del resguardante actual para excluirse a sí mismo (si aplica)
         $currentResguardanteId = $currentUser->resguardante ? $currentUser->resguardante->id : null;
 
-        $resguardantes = Resguardante::with('usuario') // Traemos la relación (puede ser null)
+        // 1. CAMBIO: Agregamos 'oficina' al with() para cargar los datos de la oficina
+        $resguardantes = Resguardante::with(['usuario', 'oficina']) 
             ->where(function($q) use ($queryText) {
                 
-                // 1. Buscamos coincidencias en la tabla USUARIOS (si tiene)
+                // Búsqueda por Usuario (Nombre/Correo)
                 $q->whereHas('usuario', function($qu) use ($queryText) {
-                    $qu->where('usuario_nombre', 'ILIKE', "%{$queryText}%")
-                    ->orWhere('usuario_correo', 'ILIKE', "%{$queryText}%");
+                    $qu->where('usuario_nombre', 'LIKE', "%{$queryText}%")
+                    ->orWhere('usuario_correo', 'LIKE', "%{$queryText}%");
                 })
                 
-                // 2. O buscamos coincidencias en la tabla RESGUARDANTES directamente
-                // (Esto permite encontrar a Beatriz aunque no tenga usuario)
-                // ¡IMPORTANTE!: Cambia 'res_nombre' por el nombre real de tu columna en la BD
-                ->orWhere('res_nombre', 'ILIKE', "%{$queryText}%"); 
+                // Búsqueda directa en Resguardantes (Nombre/RFC/CURP)
+                ->orWhere('res_nombre', 'LIKE', "%{$queryText}%")
+                ->orWhere('res_apellidos', 'LIKE', "%{$queryText}%")
+                ->orWhere('res_rfc', 'LIKE', "%{$queryText}%"); // Añadí RFC por si acaso
             })
-            // Exclusión de uno mismo
+            // Exclusión
             ->when($currentResguardanteId, function ($q) use ($currentResguardanteId) {
                 return $q->where('id', '!=', $currentResguardanteId);
             })
-            ->limit(5)
+            ->limit(10) // Aumenté un poco el límite
             ->get();
 
         $data = $resguardantes->map(function($res) {
-            // Determinamos si tiene usuario válido
             $hasUser = $res->usuario ? true : false;
             
-            // Obtenemos el nombre: Si tiene usuario, del usuario. Si no, del resguardante.
-            // Ajusta 'res_nombre' según tu base de datos.
-            $nombreMostrar = $hasUser ? $res->usuario->usuario_nombre : $res->res_nombre;
+            // Ajuste de nombre
+            $nombreMostrar = $hasUser ? $res->usuario->usuario_nombre : ($res->res_nombre . ' ' . $res->res_apellidos);
 
             return [
                 'id' => $res->id,
-                'nombre' => $nombreMostrar,
+                'nombre' => trim($nombreMostrar),
                 'correo' => $hasUser ? $res->usuario->usuario_correo : 'Sin correo registrado',
-                'cargo'  => $res->res_cargo ?? 'Sin cargo',
-                // Iniciales
-                'iniciales' => substr($nombreMostrar, 0, 2),
+                'cargo' => $res->res_cargo ?? 'Sin cargo',
                 
-                // Esta bandera activa el mensaje rojo en el Frontend
+                // --- 2. CAMBIO: Agregamos los datos de la oficina para la validación del Frontend ---
+                'id_oficina' => $res->id_oficina,
+                'nombre_oficina' => $res->oficina ? $res->oficina->nombre : 'Sin oficina asignada',
+                // ----------------------------------------------------------------------------------
+
+                'iniciales' => substr($nombreMostrar, 0, 2),
                 'tiene_usuario' => $hasUser
             ];
         });
 
+        // Nota: Devolvemos 'data' directamente si tu frontend espera un array, 
+        // o ['data' => $data] si espera un objeto paginado. 
+        // Según tu código anterior devolvías $data directo.
         return response()->json($data);
     }
 

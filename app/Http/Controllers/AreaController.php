@@ -305,7 +305,7 @@ class AreaController extends Controller
                 }
             ])
             // Selecciona solo las columnas que necesitas de los departamentos
-            ->select('id', 'dep_nombre', 'dep_codigo', 'id_area')
+            ->select('id', 'dep_nombre', 'dep_codigo','dep_resposable' ,'id_area')
             ->get();
 
         return response()->json($structure);

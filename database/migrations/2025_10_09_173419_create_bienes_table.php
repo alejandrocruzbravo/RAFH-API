@@ -30,6 +30,7 @@ return new class extends Migration
             $table->string('bien_clave');
             $table->string('bien_y');
             $table->string('bien_secuencia');
+            $table->string('bien_sec_alfabetica')->nullable();
             $table->string('bien_provedor');
             $table->string('bien_numero_factura');
             $table->timestamps();

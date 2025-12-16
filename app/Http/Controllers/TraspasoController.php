@@ -70,19 +70,17 @@ class TraspasoController extends Controller
     public function index(Request $request)
     {
         $query = Traspaso::with([
-            // Para la columna 'Solicitante'
-            'resguardanteOrigen:id,res_nombre', 
-            // Para la columna 'Descripción' (ej. "Transferencia de Laptop")
-            'bien:id,bien_descripcion' // Asumo que la tabla 'bienes' tiene 'nombre'
+            'resguardanteOrigen:id,res_nombre,res_apellidos', 
+            'resguardanteDestino:id,res_nombre,res_apellidos',
+            'bien:id,bien_descripcion,bien_codigo' 
         ]);
 
-        // --- Para el filtro de "Todos los estados" ---
+        // Para el filtro de Todos los estados
         if ($request->filled('estado')) {
             $query->where('traspaso_estado', $request->input('estado'));
         }
 
-        // --- Para la "Buscar solicitud" ---
-        // (Asumimos que busca por nombre del bien o nombre del solicitante)
+        // Para la barra de busqueda
         if ($request->filled('search')) {
             $searchTerm = $request->input('search');
             $query->where(function($q) use ($searchTerm) {
@@ -91,11 +89,14 @@ class TraspasoController extends Controller
                 })
                 ->orWhereHas('resguardanteOrigen', function($subQuery) use ($searchTerm) {
                     $subQuery->where('res_nombre', 'like', "%{$searchTerm}%");
+                })
+                ->orWhereHas('resguardanteDestino', function($subQuery) use ($searchTerm) {
+                $subQuery->where('res_nombre', 'like', "%{$searchTerm}%")
+                         ->orWhere('res_apellidos', 'like', "%{$searchTerm}%");
                 });
             });
         }
 
-        // Ordena por la más reciente primero
         $solicitudes = $query->latest('traspaso_fecha_solicitud')->paginate(10);
 
         return $solicitudes;
@@ -138,18 +139,15 @@ class TraspasoController extends Controller
     {
         $user = $request->user();
         
-        // 1. Obtenemos el ID de Resguardante del usuario actual (el que solicita)
-        // Esto es necesario para verificar que no se envíe el bien a sí mismo.
+        // Obtenemos el ID de Resguardante del usuario actual (el que solicita)
         if (!$user->resguardante) {
             return response()->json(['message' => 'Tu usuario no tiene un perfil de resguardante asociado.'], 403);
         }
         $miResguardanteId = $user->resguardante->id;
 
-        // 2. Validación corregida
         $validatedData = $request->validate([
             'traspaso_id_bien' => 'required|integer|exists:bienes,id',
-            
-            // CORRECCIÓN AQUÍ: Validamos contra la tabla 'resguardantes'
+
             'traspaso_id_usuario_destino' => [
                 'required',
                 'integer',
@@ -168,30 +166,16 @@ class TraspasoController extends Controller
 
         try {
             DB::beginTransaction();
-
-            // 3. Creamos el registro
-            // Nota: Guardamos el ID del RESGUARDANTE en las columnas de ID
+            // Creamos el registro
             $traspaso = Traspaso::create([
                 'traspaso_id_bien' => $validatedData['traspaso_id_bien'],
-                
-                // Origen: Guardamos ID del Resguardante (NO del usuario)
-                // (Asegúrate de que tu base de datos espere esto. Si espera User ID, avísame, 
-                // pero para el flujo de bienes lo lógico es guardar IDs de Resguardantes)
                 'traspaso_id_usuario_origen' => $miResguardanteId, 
-                
-                // Destino: Guardamos el ID del Resguardante que llegó del Front
                 'traspaso_id_usuario_destino' => $validatedData['traspaso_id_usuario_destino'],
                 
                 'traspaso_observaciones' => $validatedData['traspaso_observaciones'] ?? null,
                 'traspaso_fecha_solicitud' => now(),
                 'traspaso_estado' => 'Pendiente',
-            ]);
-
-            // 4. Cargar relaciones para el evento (Opcional, ajusta según tus relaciones)
-            // Nota: Si cambiaste a guardar IDs de resguardantes, asegúrate que las relaciones
-            // en el modelo Traspaso apunten a Resguardante::class, no Usuario::class.
-            // $traspaso->load('bien', 'resguardanteOrigen', 'resguardanteDestino'); 
-            
+            ]);     
             broadcast(new SolicitudTraspasoCreada($traspaso));
 
             DB::commit();
@@ -230,18 +214,10 @@ class TraspasoController extends Controller
      */
     public function show(Traspaso $traspaso)
     {
-        // El método load() funciona sobre ESTE traspaso en específico ($traspaso).
-        // Usamos "Dot Notation" (puntos) para ir profundizando en las relaciones.
-        
         $traspaso->load([
-            // 1. Datos del Bien
             'bien', 
-
-            // 2. Origen: Resguardante -> Depto -> Área / Oficina -> Edificio
             'resguardanteOrigen.departamento.area',
             'resguardanteOrigen.oficina.edificio',
-
-            // 3. Destino: Resguardante -> Depto -> Área / Oficina -> Edificio
             'resguardanteDestino.departamento.area',
             'resguardanteDestino.oficina.edificio',
         ]);
@@ -277,7 +253,6 @@ class TraspasoController extends Controller
      */
     public function update(Request $request, Traspaso $traspaso)
     {
-        // 1. Validar entrada (Solo Aprobada o Rechazada)
         $validatedData = $request->validate([
             'estado' => ['required', 'string', 'in:Aprobada,Rechazada'] 
         ]);
@@ -288,32 +263,22 @@ class TraspasoController extends Controller
 
         try {
             DB::beginTransaction();
-
             $nuevoEstado = $validatedData['estado'];
 
-            // --- LÓGICA SI ES APROBADA ---
+            // Logica para aprobar el traspaso
             if ($nuevoEstado === 'Aprobada') {
                 
-                // A. Actualizar el Bien (Cambio de dueño)
                 $bien = $traspaso->bien; 
-                
                 if (!$bien) throw new \Exception("El bien asociado no existe.");
 
-                // Cambiamos al nuevo dueño en la tabla BIENES
                 $bien->id_resguardante = $traspaso->traspaso_id_usuario_destino;
-                $bien->bien_estado = 'Activo'; // Lo reactivamos por si estaba en tránsito
+                $bien->bien_estado = 'Activo'; 
                 $bien->save();
 
-                // --- B. GESTIÓN DE LA TABLA RESGUARDOS ---
-                
-                // 1. ELIMINAR el resguardo del dueño anterior
-                // Buscamos el registro que unía a este bien con el resguardante origen
                 Resguardo::where('resguardo_id_bien', $bien->id)
                     ->where('resguardo_id_resguardante', $traspaso->traspaso_id_usuario_origen)
                     ->delete();
 
-                // 2. CREAR el nuevo resguardo para el nuevo dueño
-                // Necesitamos los datos del resguardante destino para saber su departamento
                 $resguardanteDestino = Resguardante::with('departamento')->find($traspaso->traspaso_id_usuario_destino);
 
                 if ($resguardanteDestino) {
@@ -321,25 +286,21 @@ class TraspasoController extends Controller
                         'resguardo_id_bien' => $bien->id,
                         'resguardo_id_resguardante' => $resguardanteDestino->id,
                         'resguardo_fecha_asignacion' => now(),
-                        // Asignamos el departamento del nuevo dueño (si tiene)
                         'resguardo_id_dep' => $resguardanteDestino->departamento ? $resguardanteDestino->departamento->id : null, 
                     ]);
                 }
             }
 
-            // --- C. ACTUALIZAR ESTADO DEL TRASPASO ---
-            // (Ya quitamos la fecha que daba error)
             $traspaso->traspaso_estado = $nuevoEstado;
             $traspaso->save();
-
-            // 3. Disparar Evento WebSocket
             broadcast(new SolicitudTraspasoActualizada($traspaso));
-
             DB::commit();
-
             return response()->json([
                 'message' => "Solicitud {$nuevoEstado} correctamente.",
-                'data' => $traspaso
+                'data' => $traspaso,
+                'id_origen' => $traspaso->traspaso_id_usuario_origen,
+                'id_destino' => $traspaso->traspaso_id_usuario_destino,
+                'estado_final' => $nuevoEstado
             ]);
 
         } catch (\Throwable $e) {

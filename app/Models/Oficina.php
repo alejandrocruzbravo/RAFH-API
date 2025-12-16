@@ -59,9 +59,6 @@ class Oficina extends Model
         'referencia',
     ];
 
-    /**
-     * Define la relación: una oficina pertenece a un edificio.
-     */
     public function edificio()
     {
         return $this->belongsTo(Edificio::class, 'id_edificio');

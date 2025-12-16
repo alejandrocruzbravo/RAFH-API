@@ -27,6 +27,8 @@ use App\Http\Controllers\CatalogoCucopController;
 use App\Http\Controllers\ResguardoController;
 
 use App\Http\Controllers\MovimientoBienController;
+use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\Api\PasswordResetController;
 
 use Illuminate\Support\Facades\Broadcast;
 /*
@@ -39,6 +41,8 @@ use Illuminate\Support\Facades\Broadcast;
 Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(function () {
     // Endpoints públicas para autenticación
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail']);
+    Route::post('/reset-password', [PasswordResetController::class, 'reset']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);           // Cierre de sesión
@@ -51,6 +55,8 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::post('/traspasos', [TraspasoController::class, 'store']);
         Route::get('/mis-transferencias', [ResguardanteController::class, 'misTransferencias']);
         Route::get('/resguardante/dashboard', [ResguardanteController::class, 'dashboard']);
+        Route::get('/jefe/bienes-departamento', [BienController::class, 'bienesPorDepartamento']);
+        Route::put('/perfil', [PerfilController::class, 'update']);
         
     });
 
@@ -74,6 +80,7 @@ Route::middleware([\App\Http\Middleware\CleanExpiredTokens::class])->group(funct
         Route::get('/configuracion-inventario', [ConfiguracionInventarioController::class, 'show']); // Obtener configuración de inventario
         Route::get('/oficinas/{id}/resguardantes', [ResguardanteController::class, 'indexByOficina']); //
         Route::get('/admin/movimientos', [MovimientoBienController::class, 'index']);
+        Route::get('/resguardantes/{id}/bienes-activos', [BienController::class, 'getBienesActivosPorResguardante']);
 
         Route::post('resguardantes/{resguardante}/crear-usuario', [ResguardanteController::class, 'crearUsuario'])->name('resguardantes.crearUsuario'); // Crear usuario para resguardante
         Route::post('inventario/comparar', [BienController::class, 'compararInventario']);

@@ -3752,6 +3752,143 @@
                 }
             }
         },
+        "/api/resguardos": {
+            "post": {
+                "tags": [
+                    "Resguardos"
+                ],
+                "summary": "Gestionar asignación o liberación de resguardos",
+                "description": "Este endpoint funciona como un despachador. Dependiendo del campo 'accion', asigna bienes a un usuario ('create') o libera los bienes de su resguardo actual ('release').",
+                "operationId": "e10fb27b8fa98170d4409172030cba99",
+                "requestBody": {
+                    "description": "Datos para procesar el resguardo",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "bienes_ids"
+                                ],
+                                "properties": {
+                                    "accion": {
+                                        "description": "Acción a realizar. Si se omite, por defecto es 'create' (Asignación). Use 'release' para liberar bienes.",
+                                        "type": "string",
+                                        "default": "create",
+                                        "enum": [
+                                            "create",
+                                            "release"
+                                        ]
+                                    },
+                                    "bienes_ids": {
+                                        "description": "Lista de IDs de los bienes a asignar o liberar.",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "id_resguardante": {
+                                        "description": "ID del empleado que recibirá los bienes. **Requerido** solo si la acción es 'create'.",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object",
+                                "example": {
+                                    "accion": "create",
+                                    "id_resguardante": 45,
+                                    "bienes_ids": [
+                                        101,
+                                        102,
+                                        105
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Bienes asignados exitosamente (Acción: create)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bienes asignados correctamente"
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 3
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Bienes liberados exitosamente (Acción: release)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Bienes liberados correctamente"
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "example": 2
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación (Faltan campos o IDs inválidos)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The id resguardante field is required."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error interno del servidor al procesar la transacción",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Error al asignar los resguardos"
+                                        },
+                                        "error": {
+                                            "type": "string",
+                                            "example": "Detalle del error SQL o excepción"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/formularios/roles": {
             "get": {
                 "tags": [
@@ -5009,6 +5146,10 @@
         {
             "name": "Resguardantes",
             "description": "Endpoints para la gestión de los resguardantes"
+        },
+        {
+            "name": "Resguardos",
+            "description": "Endpoints para la gestión de los resguardos de bienes"
         },
         {
             "name": "Traspasos",

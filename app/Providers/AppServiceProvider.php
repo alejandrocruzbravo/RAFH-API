@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Auth\Notifications\ResetPassword;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+       ResetPassword::createUrlUsing(function ($user, $token) {
+        // Esta URL debe ser la de tu VUE (Frontend)
+        return "http://localhost:5174/reset-password?token={$token}&email={$user->email}";
+    });
     }
 }

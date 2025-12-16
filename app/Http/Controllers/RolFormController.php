@@ -49,7 +49,6 @@ class RolFormController extends Controller
                     ->orderBy('rol_nombre') // Ordena alfabéticamente
                     ->get();
         
-        // Devolvemos la colección como un array JSON
         return response()->json($roles);
     }
 }

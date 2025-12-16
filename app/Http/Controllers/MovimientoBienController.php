@@ -132,12 +132,10 @@ class MovimientoBienController extends Controller
             $query->where('movimiento_tipo', $request->tipo);
         }
 
-        // 3. Filtro por Fechas (Desde - Hasta)
-        if ($request->has('date_from') && $request->date_from) {
-            $query->whereDate('movimiento_fecha', '>=', $request->date_from);
-        }
-        if ($request->has('date_to') && $request->date_to) {
-            $query->whereDate('movimiento_fecha', '<=', $request->date_to);
+        // 3. Filtro por Fechas 
+        if ($request->filled('date_from')) {
+            $fecha = $request->input('date_from');
+            $query->whereDate('created_at', $fecha);
         }
 
         // Ordenamos por fecha descendente (lo más nuevo primero)

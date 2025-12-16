@@ -40,10 +40,23 @@ class GestorController extends Controller
      * )
      * )
      */
-    public function index()
+    public function index(Request $request)
     {
-        $gestores = Gestor::latest()->paginate(10); 
-        return $gestores;
+        $query = Gestor::query();
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            
+            $query->where(function($q) use ($search) {
+                $q->where('gestor_nombre', 'LIKE', "%{$search}%")
+                ->orWhere('gestor_apellidos', 'LIKE', "%{$search}%")
+                ->orWhere('gestor_correo', 'LIKE', "%{$search}%")
+                ->orWhereRaw("CONCAT(gestor_nombre, ' ', gestor_apellidos) LIKE ?", ["%{$search}%"]);
+
+            });
+        }
+        $query->orderBy('id', 'desc');
+        return response()->json($query->paginate(15));
     }
 
     /**

@@ -67,12 +67,12 @@ class DepartamentoFormController extends Controller
                      ->get();
 
         // 2. Obtenemos la lista de Jefes de Departamento
-        $jefesDeDepartamento = DB::table('resguardantes')
-            ->join('usuarios', 'resguardantes.res_id_usuario', '=', 'usuarios.id')
-            ->join('roles', 'usuarios.usuario_id_rol', '=', 'roles.id') 
-            ->where('roles.rol_nombre', 'Jefe de Departamento') 
-            ->select('resguardantes.id', 'resguardantes.res_nombre') 
-            ->get();
+        $jefesDeDepartamento = Resguardante::whereHas('usuario', function ($query) {
+            // Filtramos los resguardantes cuyo usuario tenga el rol 4
+            $query->where('usuario_id_rol', 4);
+        })
+        ->select('id', 'res_nombre', 'res_apellidos')
+        ->get();
 
         // 3. Devolvemos un objeto JSON con todas las listas
         return response()->json([

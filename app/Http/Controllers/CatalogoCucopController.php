@@ -52,30 +52,25 @@ class CatalogoCucopController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Columnas a seleccionar
-        $columns = ['id','clave_cucop', 'partida_especifica', 'descripcion', 'camb'];
+        // 1. Iniciar la consulta (Select * implícito)
+        $query = CatalogoCambCucop::query();
 
-        // 2. Iniciar la consulta
-        $query = CatalogoCambCucop::select($columns);
-
-        // 3. Aplicar la lógica de búsqueda (si se proporciona)
+        // 2. Aplicar la lógica de búsqueda (si se proporciona)
         if ($request->filled('search')) {
-            $searchTerm = $request->input('search');
-            $query->where(function($q) use ($searchTerm) {
-                
-                // 1. Siempre busca en la columna de texto (camb)
-                $q->where('camb', '=', $searchTerm);
-                //    busca también en la columna de número (clave_cucop)
-                if (is_numeric($searchTerm)) {
-                    $q->orWhere('clave_cucop', '=', (int)$searchTerm);
-                }
+            $search = $request->input('search');
+
+            $query->where(function($q) use ($search) {
+                $q->where('clave_cucop', 'LIKE', "%{$search}%")
+                ->orWhere('camb', 'LIKE', "%{$search}%")
+                ->orWhere('descripcion', 'LIKE', "%{$search}%")
+                ->orWhere('partida_especifica', 'LIKE', "%{$search}%");
             });
         }
 
-        // 4. Obtener los resultados con paginación (más reciente -> más antiguo)
+        // 3. Obtener los resultados ordenados y paginados
         $catalogo = $query->orderBy('id', 'desc')->paginate(15);
 
-        return $catalogo;
+        return response()->json($catalogo);
     }
 
     /**
