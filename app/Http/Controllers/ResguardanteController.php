@@ -560,10 +560,6 @@ class ResguardanteController extends Controller
                 'tiene_usuario' => $hasUser
             ];
         });
-
-        // Nota: Devolvemos 'data' directamente si tu frontend espera un array, 
-        // o ['data' => $data] si espera un objeto paginado. 
-        // Según tu código anterior devolvías $data directo.
         return response()->json($data);
     }
 
