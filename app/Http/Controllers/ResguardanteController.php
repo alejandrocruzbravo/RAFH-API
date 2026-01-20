@@ -272,7 +272,7 @@ class ResguardanteController extends Controller
         return response()->json($resguardante->load('usuario.rol'), 201);
     }
 
-    public function bienesAsignados(Request $request , $id)
+/*    public function bienesAsignados(Request $request , $id)
     {
         // Inicia la consulta sobre los bienes que tienen este id_resguardante  
         $query = \App\Models\Bien::where('id_resguardante', $id);

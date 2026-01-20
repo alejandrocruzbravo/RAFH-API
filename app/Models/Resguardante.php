@@ -56,7 +56,10 @@ class Resguardante extends Model
      */
     public function resguardos()
     {
-        return $this->hasMany(Resguardo::class, 'resguardo_id_resguardante');
+        
+        return $this->belongsToMany(Bien::class, 'resguardos', 'resguardo_id_resguardante', 'resguardo_id_bien')
+                        ->withPivot(['resguardo_fecha_asignacion', 'resguardo_id_dep']);
+
     }
     /**
      * Obtiene la oficina asignada al resguardante.

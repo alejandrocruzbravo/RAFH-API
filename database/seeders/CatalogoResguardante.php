@@ -5,6 +5,15 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
+
+
+function elementosConLongitudIncorrecta(array $items, int $longitud, string $encoding = 'UTF-8'): array {
+    return array_filter($items, function ($item) use ($longitud, $encoding) {
+        return mb_strlen($item, $encoding) <= $longitud;
+    });
+}
+
+
 class CatalogoResguardante extends Seeder
 {
     /**
@@ -38,6 +47,7 @@ class CatalogoResguardante extends Seeder
 
                     // Construir nombre completo (resto de columnas)
                     $nombreCompleto = array_slice($columns, 1);
+                    $filterNombre = elementosConLongitudIncorrecta($nombreCompleto,1);
 
                     // Asignación simple: [apellido_paterno, apellido_materno, nombre...]
                     $apellidoPaterno = $nombreCompleto[0] ?? '';
@@ -47,7 +57,7 @@ class CatalogoResguardante extends Seeder
                     // Evitar duplicados en memoria por 'codigo'
                     if (!isset($batch[$rfc])) {
                         $batch[$rfc] = [
-                            'res_nombre'=> $nombre,
+                            'res_nombre'=> mb_strlen($nombre),
                             'res_apellidos'=>$apellidoPaterno.' '.$apellidoMaterno,
                             'res_puesto'=>'SIN PUESTO',
                             'res_rfc'=> $rfc,
